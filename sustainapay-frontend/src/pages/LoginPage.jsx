@@ -1,18 +1,52 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useLanguage } from "./LanguageContext";
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // Sementara pakai data dummy sebelum connect ke Laravel
-    if (email === "user@sustainapay.com" && password === "pass123") {
-      navigate('/dashboard');
-    } else {
-      alert("Gunakan email: user@sustainapay.com / pass: pass123");
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // PERBAIKAN: Cari token di berbagai format kembalian standar Laravel
+        const validToken = data.token || data.access_token || (data.data && data.data.token);
+        
+        if (validToken) {
+            // Simpan token ke LocalStorage
+            localStorage.setItem('token', validToken);
+            console.log("Login sukses! Token disimpan:", validToken);
+            // Arahkan ke halaman rekomendasi setelah berhasil login
+            navigate('/recommendations');
+        } else {
+            setError('Login berhasil, tapi format token dari backend tidak ditemukan.');
+            console.error("Cek response backend kamu:", data);
+        }
+      } else {
+        setError(data.message || 'Login gagal. Cek email & password kamu.');
+      }
+    } catch (err) {
+      setError('Gagal terhubung ke server. Pastikan backend Laravel menyala.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -22,10 +56,33 @@ const LoginPage = () => {
         <div className="w-16 h-16 bg-green-600 rounded-2xl mx-auto mb-4 flex items-center justify-center text-white text-3xl">🌿</div>
         <h2 className="text-3xl font-extrabold text-gray-900 mb-8">SustainaPay</h2>
         
+        {/* Pesan Error */}
+        {error && <div className="mb-4 p-3 bg-red-100 text-red-600 rounded-xl text-sm font-semibold">{error}</div>}
+        
         <form onSubmit={handleLogin} className="space-y-4">
-          <input type="email" placeholder="Email" className="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-green-500" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <input type="password" placeholder="Password" className="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-green-500" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <button type="submit" className="w-full bg-green-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-green-700">Sign In</button>
+          <input 
+            type="email" 
+            placeholder="Email" 
+            className="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-green-500" 
+            value={email} 
+            onChange={(e) => setEmail(e.target.value)} 
+            required 
+          />
+          <input 
+            type="password" 
+            placeholder="Password" 
+            className="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-green-500" 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
+            required 
+          />
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-green-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-green-700 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Menghubungkan...' : 'Sign In'}
+          </button>
         </form>
 
         <p className="mt-6 text-sm text-gray-500">

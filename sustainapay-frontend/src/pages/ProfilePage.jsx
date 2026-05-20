@@ -1,83 +1,448 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useLanguage } from "./LanguageContext";
+
+// --- KAMUS TERJEMAHAN UNTUK PROFILE PAGE ---
+const translations = {
+  en: {
+    home: "Home",
+    dashboard: "Dashboard",
+    transactions: "Transactions",
+    carbonImpact: "Carbon Impact",
+    recommendations: "Recommendations",
+    rewards: "Rewards",
+    profile: "Profile",
+    loading: "Loading...",
+    calculating: "Calculating...",
+    editProfile: "Edit Profile",
+    totalPoints: "Total Points",
+    co2Reduced: "CO2 Reduced",
+    impactRank: "Impact Rank",
+    personalInfo: "Personal Info",
+    fullName: "Full Name",
+    location: "Location",
+    joinedSince: "Joined Since",
+    locNotSet: "Location not set",
+    settings: "Settings",
+    notifSettings: "Notification Settings",
+    privacySecurity: "Privacy & Security",
+    logout: "Logout",
+    changeAvatar: "Change",
+    uploadGallery: "Upload from Gallery",
+    enterLoc: "Enter location manually...",
+    cancel: "Cancel",
+    saveChanges: "Save Changes",
+    alertSaveFail: "Failed to save profile to server.",
+    alertNetError: "Network error occurred.",
+    alertNoGps: "Your browser does not support GPS location.",
+    alertGpsFail: "Failed to get location. Ensure GPS is turned on.",
+    rights: "All rights reserved."
+  },
+  id: {
+    home: "Beranda",
+    dashboard: "Dasbor",
+    transactions: "Transaksi",
+    carbonImpact: "Dampak Karbon",
+    recommendations: "Rekomendasi",
+    rewards: "Hadiah",
+    profile: "Profil",
+    loading: "Memuat...",
+    calculating: "Menghitung...",
+    editProfile: "Edit Profil",
+    totalPoints: "Total Poin",
+    co2Reduced: "CO2 Dihemat",
+    impactRank: "Peringkat Dampak",
+    personalInfo: "Info Pribadi",
+    fullName: "Nama Lengkap",
+    location: "Lokasi",
+    joinedSince: "Bergabung Sejak",
+    locNotSet: "Lokasi belum diatur",
+    settings: "Pengaturan",
+    notifSettings: "Pengaturan Notifikasi",
+    privacySecurity: "Privasi & Keamanan",
+    logout: "Keluar",
+    changeAvatar: "Ubah",
+    uploadGallery: "Unggah dari Galeri",
+    enterLoc: "Masukkan lokasi manual...",
+    cancel: "Batal",
+    saveChanges: "Simpan Perubahan",
+    alertSaveFail: "Gagal menyimpan profil ke server.",
+    alertNetError: "Terjadi kesalahan jaringan.",
+    alertNoGps: "Browser kamu tidak mendukung fitur lokasi GPS.",
+    alertGpsFail: "Gagal mendapatkan lokasi. Pastikan GPS menyala.",
+    rights: "Hak cipta dilindungi."
+  }
+};
 
 const ProfilePage = () => {
-  // Data dummy user
-  const user = {
-    name: 'Gibran ',
-    email: 'Gibran.FufuFafa.com',
-    location: 'Jakarta, Indonesia',
-    joinDate: 'January 2024',
-    points: 2450,
-    carbonSaved: '1,245 kg',
-    impactRank: 'Top 15%',
-    avatar: 'https://ui-avatars.com/api/?name=Gibran+FufuFafa&background=00A651&color=fff&size=128'
+  const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+  
+  // 1. Ambil state lang dari Context
+  const { lang } = useLanguage(); 
+  const t = translations[lang];
+
+  // State utama untuk menampilkan data user
+  const [user, setUser] = useState({
+    name: 'Loading...',
+    email: 'Loading...',
+    location: '',
+    joinDate: '',
+    points: 0,
+    carbonSaved: '0 kg',
+    impactRank: 'Calculating...',
+    avatar: ''
+  });
+
+  // State untuk mode Edit
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', location: '', avatar: '' });
+  const [isLocating, setIsLocating] = useState(false); 
+
+  // Di sinilah useEffect dipanggil! Ini otomatis jalan pas buka halaman Profile
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    // Ambil data terbaru dari Backend (Laravel)
+    fetch('http://127.0.0.1:8000/api/user', {
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      // Simpan data asli dari backend ke localstorage biar aman
+      localStorage.setItem('user', JSON.stringify(data));
+
+      const getInitials = (name) => {
+        if (!name) return 'U';
+        const words = name.split(' ');
+        if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+        return name.substring(0, 2).toUpperCase();
+      };
+
+      const dateString = data.created_at 
+        ? new Date(data.created_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { month: 'long', year: 'numeric' })
+        : new Date().toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { month: 'long', year: 'numeric' });
+
+      // Update Tampilan UI sesuai database
+      setUser({
+        name: data.name,
+        email: data.email,
+        location: localStorage.getItem('user_location') || '', // Pake localstorage sementara kalo DB belum ada kolom location
+        joinDate: dateString,
+        avatar: localStorage.getItem('user_avatar') || `https://ui-avatars.com/api/?name=${getInitials(data.name)}&background=00A651&color=fff&size=128`,
+        points: 2450, 
+        carbonSaved: '1,245 kg',
+        impactRank: 'Top 15%',
+      });
+    })
+    .catch(err => {
+      console.error("Gagal mengambil data user:", err);
+      // Kalau gagal fetch API, tendang balik ke login biar aman
+      if(err.message && err.message.includes('401')) {
+          localStorage.removeItem('token');
+          navigate('/login');
+      }
+    });
+
+  }, [navigate, lang]); // Tambahkan lang agar format tanggal direfresh saat ganti bahasa
+
+  const handleEditClick = () => {
+    setEditForm({
+      name: user.name === 'Loading...' ? '' : user.name,
+      location: user.location,
+      avatar: user.avatar
+    });
+    setIsEditing(true);
+  };
+
+  const handleSaveProfile = async () => {
+    const token = localStorage.getItem('token');
+
+    try {
+      // 1. Kirim data ke Laravel Backend agar tersimpan di Database
+      const response = await fetch('http://127.0.0.1:8000/api/user/update', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          name: editForm.name,
+          location: editForm.location,
+          avatar: editForm.avatar
+        })
+      });
+
+      if (response.ok) {
+        // 2. Jika sukses, Update State User secara langsung agar UI berubah
+        setUser(prev => ({
+          ...prev,
+          name: editForm.name,
+          location: editForm.location,
+          avatar: editForm.avatar
+        }));
+
+        // Simpan manual location dan avatar di frontend kalau DB belum punya kolomnya
+        localStorage.setItem('user_location', editForm.location);
+        localStorage.setItem('user_avatar', editForm.avatar);
+
+        setIsEditing(false);
+      } else {
+        alert(t.alertSaveFail);
+      }
+    } catch (err) {
+      console.error("Error update profile:", err);
+      alert(t.alertNetError);
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditForm(prev => ({ ...prev, avatar: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleGetLocation = () => {
+    if (!("geolocation" in navigator)) {
+      alert(t.alertNoGps);
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await res.json();
+          
+          const city = data.address.city || data.address.town || data.address.state || 'Unknown City';
+          const country = data.address.country || 'Unknown Country';
+          
+          setEditForm(prev => ({ ...prev, location: `${city}, ${country}` }));
+        } catch (error) {
+          setEditForm(prev => ({ ...prev, location: `Lat: ${latitude.toFixed(2)}, Lon: ${longitude.toFixed(2)}` }));
+        } finally {
+          setIsLocating(false);
+        }
+      },
+      (error) => {
+        alert(t.alertGpsFail);
+        setIsLocating(false);
+      }
+    );
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('user_avatar');
+    localStorage.removeItem('user_location');
+    navigate('/login');
   };
 
   return (
-    <div className="min-h-screen bg-[#F6FCF9] font-sans text-gray-900">
+    <div className="min-h-screen bg-[#F6FCF9] font-sans text-gray-900 relative">
       
-      {/* NAVBAR */}
-      <nav className="flex justify-between items-center py-4 px-8 max-w-7xl mx-auto bg-white border-b border-gray-50">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-green-800 flex items-center justify-center rounded-lg">
-             <span className="text-white font-bold text-xs">LOGO</span>
-          </div>
-        </div>
-        
-        <div className="hidden md:flex items-center gap-6 text-sm font-semibold text-gray-400">
-          <Link to="/" className="hover:text-green-600">Home</Link>
-          <Link to="/dashboard" className="hover:text-green-600">Dashboard</Link>
-          <Link to="/transactions" className="hover:text-green-600">Transactions</Link>
-          <Link to="/carbon-impact" className="hover:text-green-600">Carbon Impact</Link>
-          <Link to="/recommendations" className="hover:text-green-600">Recommendations</Link>
-          <Link to="/rewards" className="hover:text-green-600">Rewards</Link>
-          
-          {/* Menu Profile sekarang AKTIF */}
-          <Link to="/profile" className="text-green-600 border-b-2 border-green-600 pb-1">Profile</Link>
-        </div>
+      {/* MODAL EDIT PROFIL */}
+      {isEditing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-md rounded-[2rem] p-8 shadow-2xl animate-[fadeIn_0.2s_ease-out]">
+            <h2 className="text-2xl font-black text-gray-900 mb-6">{t.editProfile}</h2>
+            
+            {/* Ganti Foto */}
+            <div className="flex flex-col items-center mb-6">
+              <div className="w-24 h-24 rounded-full border-4 border-green-50 overflow-hidden mb-3 relative group">
+                <img src={editForm.avatar} alt="Edit Avatar" className="w-full h-full object-cover" />
+                <div 
+                  className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
+                  onClick={() => fileInputRef.current.click()}
+                >
+                  <span className="text-white text-xs font-bold">{t.changeAvatar}</span>
+                </div>
+              </div>
+              <input 
+                type="file" 
+                accept="image/*" 
+                ref={fileInputRef} 
+                className="hidden" 
+                onChange={handleImageUpload} 
+              />
+              <button 
+                onClick={() => fileInputRef.current.click()}
+                className="text-xs font-bold text-green-600 hover:text-green-800"
+              >
+                {t.uploadGallery}
+              </button>
+            </div>
 
-        <div className="flex items-center gap-3">
-          <button className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center hover:bg-green-200 transition">🔔</button>
-          <div className="w-10 h-10 bg-green-600 rounded-full border-2 border-white shadow-sm overflow-hidden cursor-pointer">
-            <img src={user.avatar} alt="User" />
+            {/* Form Input */}
+            <div className="space-y-4 mb-8">
+              <div>
+                <label className="text-xs font-bold text-gray-500 mb-1 block">{t.fullName}</label>
+                <input 
+                  type="text" 
+                  value={editForm.name} 
+                  onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-green-500 font-medium"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-500 mb-1 block">{t.location}</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={editForm.location} 
+                    onChange={(e) => setEditForm({...editForm, location: e.target.value})}
+                    placeholder={t.enterLoc}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-green-500 font-medium"
+                  />
+                  <button 
+                    onClick={handleGetLocation}
+                    disabled={isLocating}
+                    className="px-4 bg-green-100 text-green-700 rounded-xl font-bold hover:bg-green-200 transition disabled:opacity-50 flex-shrink-0"
+                    title="Get Current Location"
+                  >
+                    {isLocating ? '...' : '📍 GPS'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setIsEditing(false)}
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition"
+              >
+                {t.cancel}
+              </button>
+              <button 
+                onClick={handleSaveProfile}
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-[#00A651] hover:bg-green-700 transition shadow-md shadow-green-200"
+              >
+                {t.saveChanges}
+              </button>
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* NAVBAR - GAYA LANDING PAGE (MODERN & FLOATING) */}
+      <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-sm transition-all duration-300">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          
+          {/* KIRI: Logo & Nama Brand */}
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition group">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#00A651] to-green-700 flex items-center justify-center rounded-xl shadow-lg shadow-green-200 group-hover:scale-105 transition-transform">
+              <span className="text-white font-black text-[10px] tracking-widest">LOGO</span>
+            </div>
+            <span className="font-black text-xl tracking-tight text-gray-900 hidden md:block">
+              Sustaina<span className="text-[#00A651]">Pay</span>
+            </span>
+          </Link>
+          
+          {/* TENGAH: Menu Navigasi (Pill Style) */}
+          <div className="hidden lg:flex items-center gap-1 bg-gray-50/80 border border-gray-100 p-1.5 rounded-full shadow-inner">
+            <Link to="/" className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all">
+              {t.home}
+            </Link>
+            <Link to="/dashboard" className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all">
+              {t.dashboard}
+            </Link>
+            <Link to="/transactions" className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all">
+              {t.transactions}
+            </Link>
+            <Link to="/carbon-impact" className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all">
+              {t.carbonImpact}
+            </Link>
+            <Link to="/recommendations" className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all">
+              {t.recommendations}
+            </Link>
+            <Link to="/rewards" className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all">
+              {t.rewards}
+            </Link>
+            {/* Navigasi Aktif (Profile) */}
+            <Link to="/profile" className="px-5 py-2 text-sm font-black text-white bg-[#00A651] shadow-md shadow-green-200 rounded-full transition-all">
+              {t.profile}
+            </Link>
+          </div>
+
+          {/* KANAN: Notifikasi & Profil (Interaktif) */}
+          <div className="flex items-center gap-4">
+            <button className="relative w-10 h-10 bg-white border border-gray-100 text-gray-600 rounded-full flex items-center justify-center shadow-sm hover:bg-green-50 hover:text-green-600 transition-all hover:scale-105">
+              🔔
+              <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+            </button>
+            
+            <div className="flex items-center gap-3 p-1.5 pr-4 bg-white border border-gray-100 rounded-full shadow-sm">
+              <div className="w-8 h-8 bg-[#00A651] rounded-full overflow-hidden border-2 border-white flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                {user.avatar && <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />}
+              </div>
+              <span className="text-sm font-bold text-gray-700 hidden sm:block">{t.profile}</span>
+            </div>
+          </div>
+
         </div>
       </nav>
+      {/* AKHIR NAVBAR */}
 
       {/* CONTENT AREA */}
       <main className="max-w-4xl mx-auto px-8 py-12">
         
         {/* HEADER / COVER AREA */}
-        <div className="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden mb-8">
+        <div className="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden mb-8 relative">
           <div className="h-32 bg-gradient-to-r from-green-600 to-[#0B132B]"></div>
           <div className="px-10 pb-10">
             <div className="flex flex-col md:flex-row items-center md:items-end gap-6 -mt-16 mb-6">
-              <div className="w-32 h-32 rounded-[2.5rem] border-4 border-white overflow-hidden shadow-lg bg-white">
-                <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+              <div className="w-32 h-32 rounded-[2.5rem] border-4 border-white overflow-hidden shadow-lg bg-white shrink-0">
+                {user.avatar && <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />}
               </div>
               <div className="text-center md:text-left flex-grow">
-                <h1 className="text-3xl font-black text-gray-900">{user.name}</h1>
-                <p className="text-gray-500 font-bold">{user.email}</p>
+                <h1 className="text-3xl font-black text-gray-900">
+                  {user.name === 'Loading...' ? t.loading : user.name}
+                </h1>
+                <p className="text-gray-500 font-bold">
+                  {user.email === 'Loading...' ? t.loading : user.email}
+                </p>
               </div>
-              <button className="bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-bold hover:bg-[#00A651] transition shadow-md">
-                Edit Profile
+              <button 
+                onClick={handleEditClick}
+                className="bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-bold hover:bg-[#00A651] transition shadow-md"
+              >
+                {t.editProfile}
               </button>
             </div>
 
             {/* QUICK STATS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 pt-8 border-t border-gray-50">
               <div className="text-center p-4 bg-[#F6FCF9] rounded-[2rem]">
-                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Total Points</p>
+                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{t.totalPoints}</p>
                 <p className="text-2xl font-black text-[#00A651]">{user.points} pts</p>
               </div>
               <div className="text-center p-4 bg-[#F6FCF9] rounded-[2rem]">
-                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">CO2 Reduced</p>
+                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{t.co2Reduced}</p>
                 <p className="text-2xl font-black text-gray-900">{user.carbonSaved}</p>
               </div>
               <div className="text-center p-4 bg-[#F6FCF9] rounded-[2rem]">
-                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Impact Rank</p>
-                <p className="text-2xl font-black text-blue-600">{user.impactRank}</p>
+                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{t.impactRank}</p>
+                <p className="text-2xl font-black text-blue-600">
+                  {user.impactRank === 'Calculating...' ? t.calculating : user.impactRank}
+                </p>
               </div>
             </div>
           </div>
@@ -89,19 +454,23 @@ const ProfilePage = () => {
           {/* Account Information */}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
             <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-2">
-              <span className="p-2 bg-green-50 rounded-lg text-lg">👤</span> Personal Info
+              <span className="p-2 bg-green-50 rounded-lg text-lg">👤</span> {t.personalInfo}
             </h3>
             <div className="space-y-6">
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Full Name</label>
-                <p className="font-bold text-gray-800 border-b border-gray-50 pb-2">{user.name}</p>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t.fullName}</label>
+                <p className="font-bold text-gray-800 border-b border-gray-50 pb-2">
+                  {user.name === 'Loading...' ? t.loading : user.name}
+                </p>
               </div>
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Location</label>
-                <p className="font-bold text-gray-800 border-b border-gray-50 pb-2">{user.location}</p>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t.location}</label>
+                <p className="font-bold text-gray-800 border-b border-gray-50 pb-2">
+                  {user.location ? user.location : <span className="text-gray-400 italic">{t.locNotSet}</span>}
+                </p>
               </div>
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Joined Since</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t.joinedSince}</label>
                 <p className="font-bold text-gray-800 border-b border-gray-50 pb-2">{user.joinDate}</p>
               </div>
             </div>
@@ -110,19 +479,23 @@ const ProfilePage = () => {
           {/* Preferences / Settings */}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
             <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-2">
-              <span className="p-2 bg-blue-50 rounded-lg text-lg">⚙️</span> Settings
+              <span className="p-2 bg-blue-50 rounded-lg text-lg">⚙️</span> {t.settings}
             </h3>
             <div className="space-y-4">
               <button className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-green-50 transition-colors group">
-                <span className="font-bold text-gray-700 group-hover:text-green-600">Notification Settings</span>
+                <span className="font-bold text-gray-700 group-hover:text-green-600">{t.notifSettings}</span>
                 <span className="text-gray-400">›</span>
               </button>
               <button className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-green-50 transition-colors group">
-                <span className="font-bold text-gray-700 group-hover:text-green-600">Privacy & Security</span>
+                <span className="font-bold text-gray-700 group-hover:text-green-600">{t.privacySecurity}</span>
                 <span className="text-gray-400">›</span>
               </button>
-              <button className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-red-50 transition-colors group">
-                <span className="font-bold text-red-600">Logout</span>
+              
+              <button 
+                onClick={handleLogout}
+                className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-red-50 transition-colors group"
+              >
+                <span className="font-bold text-red-600">{t.logout}</span>
                 <span className="text-red-400">🚪</span>
               </button>
             </div>
@@ -134,37 +507,8 @@ const ProfilePage = () => {
 
       {/* FOOTER */}
       <footer className="bg-[#0B132B] text-white py-16 mt-16">
-        <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-4 gap-12">
-          <div>
-            <div className="w-16 h-10 bg-green-800 border-2 border-white mb-6 flex items-center justify-center text-[8px] font-bold">LOGO</div>
-            <p className="text-xs text-gray-400 leading-relaxed font-medium">
-              Track your carbon footprint with every transactions.
-            </p>
-          </div>
-          <div>
-            <h5 className="font-black text-sm mb-6">Product</h5>
-            <ul className="text-xs text-gray-400 space-y-4 font-bold">
-              <li className="hover:text-white cursor-pointer transition">Features</li>
-              <li className="hover:text-white cursor-pointer transition">Pricing</li>
-            </ul>
-          </div>
-          <div>
-            <h5 className="font-black text-sm mb-6">Company</h5>
-            <ul className="text-xs text-gray-400 space-y-4 font-bold">
-              <li className="hover:text-white cursor-pointer transition">About</li>
-              <li className="hover:text-white cursor-pointer transition">Blog</li>
-            </ul>
-          </div>
-          <div>
-            <h5 className="font-black text-sm mb-6">Support</h5>
-            <ul className="text-xs text-gray-400 space-y-4 font-bold">
-              <li className="hover:text-white cursor-pointer transition">Help Center</li>
-              <li className="hover:text-white cursor-pointer transition">Privacy</li>
-            </ul>
-          </div>
-        </div>
         <div className="max-w-7xl mx-auto px-8 mt-16 pt-8 border-t border-gray-800 text-center text-[10px] text-gray-500 font-bold">
-          © 2026 SustainaPay. All rights reserved.
+          © 2026 SustainaPay. {t.rights}
         </div>
       </footer>
 

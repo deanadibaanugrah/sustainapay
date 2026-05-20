@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class CarbonRecord extends Model
 {
@@ -12,23 +12,16 @@ class CarbonRecord extends Model
     protected $fillable = [
         'user_id', 
         'transaction_id', 
-        'emission_factor_id', 
-        'distance_km', 
-        'calculated_carbon_kg'
+        'emission_factor_id', // Tambahkan ini
+        'distance_km',        // Ubah dari travel_distance
+        'calculated_carbon_kg' // Ubah dari carbon_emitted
     ];
 
-    public function user()
-    {
+    public function user() {
         return $this->belongsTo(User::class);
     }
 
-    public function transaction()
-    {
+    public function transaction() {
         return $this->belongsTo(Transaction::class);
-    }
-
-    public function emissionFactor()
-    {
-        return $this->belongsTo(EmissionFactor::class);
     }
 }

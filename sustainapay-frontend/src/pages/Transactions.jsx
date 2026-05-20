@@ -1,211 +1,734 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Scanner } from '@yudiel/react-qr-scanner';
+import { useLanguage } from "./LanguageContext"; // Pastikan path ini sesuai
 
 const Transactions = () => {
+  // 1. TANGKAP BAHASA DENGAN AMAN (ANTI CRASH)
+  const contextData = useLanguage() || {};
+  // Cek apakah pakai variabel 'lang' atau 'language'
+  const activeLang = contextData.language || contextData.lang || 'ID'; 
+  // Pastikan formatnya selalu konsisten jadi 'EN' atau 'ID'
+  const safeLang = String(activeLang).toUpperCase() === 'EN' ? 'EN' : 'ID'; 
+  
+  const toggleLanguage = contextData.toggleLanguage || (() => console.warn("Fungsi toggle bahasa belum ada di context"));
+
+  // 2. STATE DECLARATIONS
   const [activeFilter, setActiveFilter] = useState('All');
+  const [navUser, setNavUser] = useState({ avatar: null, initials: 'U' });
+  const [balance, setBalance] = useState(0); 
+  const [topupAmount, setTopupAmount] = useState('');
+  const [topupMethod, setTopupMethod] = useState('BCA');
+  const [modalStep, setModalStep] = useState('NONE');
+  const [isScanning, setIsScanning] = useState(false); 
+  const [scanProvider, setScanProvider] = useState('Gojek');
+  const [scanCategory, setScanCategory] = useState('Motorcycle');
+  const [scanDistance, setScanDistance] = useState('');
+  const [scanCost, setScanCost] = useState('');
+  const [scannedData, setScannedData] = useState(null);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [transactions, setTransactions] = useState([]);
 
-  // Data dummy transaksi yang SUDAH DIUBAH menjadi jenis kendaraan
-  const transactionsData = [
-    { id: 1, icon: '🚌', name: 'City Bus', category: 'Bus', date: 'Today, 08:30 AM', amount: '-$2.50', carbon: '0.5 kg', impact: 'low' },
-    { id: 2, icon: '🚗', name: 'Taxi / Ride Hailing', category: 'Car', date: 'Today, 07:15 AM', amount: '-$14.20', carbon: '4.2 kg', impact: 'medium' },
-    { id: 3, icon: '🏍️', name: 'Ojek Online', category: 'Motorcycle', date: 'Yesterday, 18:45 PM', amount: '-$5.50', carbon: '1.4 kg', impact: 'low' },
-    { id: 4, icon: '🚗', name: 'Personal Car', category: 'Car', date: 'Yesterday, 14:20 PM', amount: '-$10.00', carbon: '8.0 kg', impact: 'high' },
-    { id: 5, icon: '🚆', name: 'Commuter Train', category: 'Public Transport', date: 'May 12, 10:00 AM', amount: '-$3.00', carbon: '0.2 kg', impact: 'low' },
-    { id: 6, icon: '🚆', name: 'Subway / MRT', category: 'Public Transport', date: 'May 10, 09:00 AM', amount: '-$4.00', carbon: '0.1 kg', impact: 'low' },
-    { id: 7, icon: '🏍️', name: 'Delivery Bike', category: 'Motorcycle', date: 'May 09, 20:30 PM', amount: '-$8.50', carbon: '2.8 kg', impact: 'medium' },
-    { id: 8, icon: '🚌', name: 'Intercity Bus', category: 'Bus', date: 'May 08, 15:10 PM', amount: '-$25.00', carbon: '15.0 kg', impact: 'high' },
-  ];
+  // 3. KAMUS TRANSLASI (100% AMAN KARENA safeLang DIJAMIN ADA VALUENYA)
+  const t = {
+    ID: {
+      navHome: "Beranda",
+      navDashboard: "Dasbor",
+      navTransactions: "Transaksi",
+      navCarbon: "Dampak Karbon",
+      navRec: "Rekomendasi",
+      navRewards: "Hadiah",
+      navProfile: "Profil",
+      title: "Riwayat Transaksi",
+      subtitle: "Pantau pengeluaran Anda dan dampak lingkungannya secara berkala",
+      scanBtn: "Scan QR / Input",
+      balanceTitle: "Saldo E-Wallet SustainaPay",
+      topupBtn: "Top Up Saldo",
+      amountLabel: "Jumlah",
+      carbonLabel: "Karbon",
+      latestLabel: "Terbaru",
+      noTransactionsTitle: "Tidak ada transaksi ditemukan",
+      noTransactionsDesc: "Belum ada data transaksi di kategori ini.",
+      filters: {
+        All: "Semua",
+        Motorcycle: "Motor",
+        Car: "Mobil",
+        Bus: "Bus",
+        "Public Transport": "Angkutan Umum",
+        "Top Up": "Top Up"
+      },
+      topupHeader: "Top Up Saldo",
+      topupSub: "Pilih bank atau e-wallet untuk top up.",
+      paymentMethod: "METODE PEMBAYARAN",
+      topupNominal: "NOMINAL TOP UP (RP)",
+      confirmTopup: "Konfirmasi Top Up",
+      scanHeader: "Scan QR Trip",
+      scanSub: "Arahkan kamera ke QR perjalanan atau input manual.",
+      cancelScan: "Batal Scan",
+      openCamera: "Buka Kamera Scan QR",
+      orManual: "ATAU INPUT MANUAL",
+      provider: "Provider / App",
+      category: "Kategori",
+      distanceLabel: "Jarak Tempuh (KM)",
+      costLabel: "Total Biaya Tagihan (RP)",
+      btnAnalyze: "Analisis Carbon & Lanjut Bayar",
+      loadingHeader: "Menghubungi Server...",
+      loadingSub: "Memproses data payload & menghitung jejak karbon",
+      payHeader: "Detail Pembayaran",
+      paySub: "Review transaksi menggunakan SustainaPay.",
+      service: "Layanan",
+      distance: "Jarak Tempuh",
+      deductBalance: "Potong Saldo Wallet",
+      pinLabel: "PIN SUSTAINAPAY (123456)",
+      btnPay: "Bayar Sekarang",
+      successHeader: "Pembayaran Berhasil!",
+      remainingBalance: "Sisa Saldo",
+      aiInsights: "Sustaina-AI Insights",
+      btnFinish: "Selesai"
+    },
+    EN: {
+      navHome: "Home",
+      navDashboard: "Dashboard",
+      navTransactions: "Transactions",
+      navCarbon: "Carbon Impact",
+      navRec: "Recommendations",
+      navRewards: "Rewards",
+      navProfile: "Profile",
+      title: "Transaction History",
+      subtitle: "Track your spending and its environmental impact",
+      scanBtn: "Scan QR / Input",
+      balanceTitle: "SustainaPay E-Wallet Balance",
+      topupBtn: "Top Up Balance",
+      amountLabel: "Amount",
+      carbonLabel: "Carbon",
+      latestLabel: "Latest",
+      noTransactionsTitle: "No transactions found",
+      noTransactionsDesc: "No transaction data in this category.",
+      filters: {
+        All: "All",
+        Motorcycle: "Motorcycle",
+        Car: "Car",
+        Bus: "Bus",
+        "Public Transport": "Public Transport",
+        "Top Up": "Top Up"
+      },
+      topupHeader: "Top Up Balance",
+      topupSub: "Select a bank or e-wallet to top up.",
+      paymentMethod: "PAYMENT METHOD",
+      topupNominal: "TOP UP NOMINAL (RP)",
+      confirmTopup: "Confirm Top Up",
+      scanHeader: "Scan QR Trip",
+      scanSub: "Point the camera at the trip QR or input manually.",
+      cancelScan: "Cancel Scan",
+      openCamera: "Open QR Scanner Camera",
+      orManual: "OR MANUAL INPUT",
+      provider: "Provider / App",
+      category: "Category",
+      distanceLabel: "Distance (KM)",
+      costLabel: "Total Bill Cost (RP)",
+      btnAnalyze: "Analyze Carbon & Proceed to Pay",
+      loadingHeader: "Connecting to Server...",
+      loadingSub: "Processing payload data & calculating carbon footprint",
+      payHeader: "Payment Details",
+      paySub: "Review transaction using SustainaPay.",
+      service: "Service",
+      distance: "Distance",
+      deductBalance: "Deduct Wallet Balance",
+      pinLabel: "SUSTAINAPAY PIN (123456)",
+      btnPay: "Pay Now",
+      successHeader: "Payment Successful!",
+      remainingBalance: "Remaining Balance",
+      aiInsights: "Sustaina-AI Insights",
+      btnFinish: "Finish"
+    }
+  }[safeLang];
 
-  // FILTER YANG SUDAH DIUBAH
-  const filters = ['All', 'Motorcycle', 'Car', 'Bus', 'Public Transport'];
+  const filters = ['All', 'Motorcycle', 'Car', 'Bus', 'Public Transport', 'Top Up'];
 
-  // Filter logika
   const filteredTransactions = activeFilter === 'All' 
-    ? transactionsData 
-    : transactionsData.filter(t => t.category === activeFilter);
+    ? transactions 
+    : transactions.filter(t => t.category === activeFilter);
 
+  // --- EFEK & FUNGSI MENGAMBIL DATA (100% UTUH) ---
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        const fullName = parsedUser.name || 'User';
+        const getInitials = (name) => {
+          if (!name) return 'U';
+          const words = name.trim().split(' ');
+          if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+          return name.substring(0, 2).toUpperCase();
+        };
+        const initials = getInitials(fullName);
+        const userAvatar = localStorage.getItem('user_avatar') 
+                        || parsedUser.profile_picture 
+                        || parsedUser.avatar 
+                        || null; 
+        setNavUser({ avatar: userAvatar, initials });
+      } catch (error) {
+        console.error("Gagal parse data user:", error);
+      }
+    }
+  }, []);
+
+  const fetchTransactions = async () => {
+    try {
+      const historyResponse = await fetch('http://localhost:8000/api/transactions/history', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}` 
+        }
+      });
+
+      if (historyResponse.ok) {
+        const historyData = await historyResponse.json();
+        const rawTransactions = historyData.data || historyData || []; 
+        
+        const formattedTransactions = rawTransactions.map(item => {
+          const isIncome = item.category === 'Top Up' || item.type === 'income' || item.type === 'topup';
+          let finalAmount = item.amount;
+          if (typeof item.amount === 'number' || (typeof item.amount === 'string' && !item.amount.includes('Rp'))) {
+            finalAmount = isIncome 
+              ? `+Rp ${parseInt(item.amount || 0).toLocaleString('id-ID')}`
+              : `-Rp ${parseInt(item.amount || 0).toLocaleString('id-ID')}`;
+          }
+
+          return {
+            ...item,
+            amount: finalAmount,
+            icon: item.icon || (item.category === 'Car' ? '🚗' : item.category === 'Bus' ? '🚌' : item.category === 'Top Up' ? '➕' : '🏍️')
+          };
+        });
+
+        setTransactions(formattedTransactions); 
+      }
+    } catch (error) {
+      console.error("Gagal mengambil riwayat transaksi:", error);
+    }
+  };
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const userResponse = await fetch('http://localhost:8000/api/user', {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}` 
+          }
+        });
+
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          let finalBalance = 0;
+          if (userData.wallet_balance !== undefined) {
+             finalBalance = typeof userData.wallet_balance === 'object' 
+                ? (userData.wallet_balance.balance || userData.wallet_balance.amount || 0) 
+                : userData.wallet_balance;
+          } else if (userData.balance !== undefined) { 
+             finalBalance = typeof userData.balance === 'object'
+                ? (userData.balance.balance || userData.balance.amount || 0)
+                : userData.balance;
+          }
+          setBalance(Number(finalBalance) || 0);
+        }
+
+        await fetchTransactions();
+
+      } catch (error) {
+        console.error("Gagal mengambil data awal:", error);
+      }
+    };
+    
+    fetchInitialData();
+  }, []);
+
+  const handleScanSukses = async (text) => {
+    if (!text) return;
+    setIsScanning(false); 
+    setModalStep('LOADING_AI'); 
+
+    try {
+      const response = await fetch('http://localhost:8000/api/process-qr', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ qr_payload: text }) 
+      });
+
+      if (!response.ok) throw new Error('Gagal memproses QR di Backend');
+      const backendData = await response.json();
+
+      let carbonValue = parseFloat(backendData.carbon);
+      let distanceValue = parseFloat(backendData.distance) || 5;
+
+      if (isNaN(carbonValue) || carbonValue <= 0) {
+        carbonValue = distanceValue * 0.15;
+      }
+
+      setScannedData({
+        id: backendData.id || Date.now(),
+        icon: backendData.category === 'Car' ? '🚗' : backendData.category === 'Bus' ? '🚌' : '🏍️',
+        name: backendData.provider_name || 'QR Payment',
+        category: backendData.category || 'Public Transport',
+        date: 'Baru saja',
+        distance: backendData.distance,
+        cost: backendData.cost, 
+        amount: `-Rp ${parseInt(backendData.cost).toLocaleString('id-ID')}`,
+        carbon: `${carbonValue.toFixed(2)} kg`,
+        impact: backendData.impact || 'low',
+        recommendation: backendData.recommendation || `Perjalanan ini menghasilkan emisi sekitar ${carbonValue.toFixed(2)} kg CO2.`
+      });
+
+      setModalStep('PAYMENT'); 
+    } catch (error) {
+      alert("Terjadi kesalahan saat memproses QR Code ini ke server.");
+      closeModal();
+    }
+  };
+
+  const handleProcessScan = async () => {
+    if (!scanDistance || !scanCost) {
+      alert("Harap isi jarak tempuh dan biaya!");
+      return;
+    }
+
+    setModalStep('LOADING_AI'); 
+
+    try {
+      const response = await fetch('http://localhost:8000/api/ai/recommendations/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          provider: scanProvider,
+          category: scanCategory,
+          distance: parseFloat(scanDistance),
+          cost: parseFloat(scanCost)
+        })
+      });
+
+      if (!response.ok) throw new Error('API Backend Gagal');
+      const aiData = await response.json();
+
+      let carbonValue = parseFloat(aiData.carbon);
+      let distanceValue = parseFloat(scanDistance) || 0;
+
+      if (isNaN(carbonValue) || carbonValue <= 0) {
+        carbonValue = distanceValue * 0.15;
+      }
+
+      const calculatedRec = aiData.recommendation || `Mengurangi penggunaan kendaraan pribadi bisa menekan emisi karbon ini.`;
+
+      setScannedData({
+        id: Date.now(),
+        icon: scanCategory === 'Car' ? '🚗' : scanCategory === 'Bus' ? '🚌' : '🏍️',
+        name: `${scanProvider} ${scanCategory}`,
+        category: scanCategory,
+        date: 'Baru saja',
+        distance: scanDistance,
+        cost: scanCost,
+        amount: `-Rp ${parseInt(scanCost).toLocaleString('id-ID')}`,
+        carbon: `${carbonValue.toFixed(2)} kg`,
+        impact: scanCategory === 'Car' ? 'medium' : 'low',
+        recommendation: calculatedRec
+      });
+
+      setModalStep('PAYMENT'); 
+    } catch (error) {
+      alert("Gagal terhubung ke AI Backend. Pastikan server nyala.");
+      closeModal();
+    }
+  };
+
+  const handleProcessPayment = async () => {
+    if (passwordInput !== '123456') { 
+      alert('Sandi salah! Transaksi ditolak.');
+      setPasswordInput('');
+      return;
+    }
+
+    const costInt = parseInt(scannedData.cost);
+    if (balance < costInt) {
+      alert('Saldo SustainaPay tidak mencukupi! Silakan Top Up.');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/api/transactions/payment', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ 
+          amount: costInt, 
+          transaction_id: scannedData.id,
+          category: scannedData.category,
+          description: `Pembayaran Trip ${scannedData.name}`,
+          carbon: parseFloat(scannedData.carbon) || 0,
+          recommendation: scannedData.recommendation
+        })
+      });
+
+      if (!response.ok) throw new Error('Pembayaran gagal di backend');
+
+      setBalance(prev => Number(prev) - costInt); 
+      setPasswordError('');
+      fetchTransactions(); 
+      setModalStep('SUCCESS'); 
+    } catch (error) {
+      alert("Gagal melakukan pembayaran ke server.");
+    }
+  };
+
+  const handleFinishTransaction = () => {
+    closeModal();
+  };
+
+  const handleTopupSubmit = async () => {
+    if (!topupAmount || parseInt(topupAmount) < 10000) {
+      alert("Minimal top up Rp 10.000");
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/api/transactions/topup', { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}` 
+        },
+        body: JSON.stringify({ amount: parseInt(topupAmount) })
+      });
+
+      const data = await response.json();
+
+      if (data.token) {
+        window.snap.pay(data.token, {
+          onSuccess: function(result) {
+            alert("Pembayaran Berhasil! Saldo kamu bertambah.");
+            setBalance(prev => Number(prev) + parseInt(topupAmount));
+            fetchTransactions(); 
+            closeModal();
+          },
+          onPending: function(result) {
+            alert("Menunggu pembayaran kamu...");
+            closeModal();
+          },
+          onError: function(result) {
+            alert("Pembayaran gagal atau dibatalkan!");
+            closeModal();
+          },
+          onClose: function() {
+            alert("Kamu menutup pop-up sebelum menyelesaikan pembayaran.");
+          }
+        });
+      } else {
+        alert("Gagal mendapatkan token pembayaran dari server.");
+      }
+    } catch (error) {
+      console.error("Error Top Up:", error);
+      alert("Terjadi kesalahan sistem saat menghubungi Laravel.");
+    }
+  };
+
+  const closeModal = () => {
+    setModalStep('NONE');
+    setPasswordInput('');
+    setPasswordError('');
+    setScannedData(null);
+    setScanDistance('');
+    setScanCost('');
+    setIsScanning(false); 
+  };
+
+  // --- RETURN RENDER ---
   return (
-    <div className="min-h-screen bg-[#F6FCF9] font-sans text-gray-900">
+    <div className="min-h-screen bg-[#F6FCF9] font-sans text-gray-900 relative">
       
       {/* NAVBAR */}
-      <nav className="flex justify-between items-center py-4 px-8 max-w-7xl mx-auto bg-white border-b border-gray-50">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-green-800 flex items-center justify-center rounded-lg">
-             <span className="text-white font-bold text-xs">LOGO</span>
-          </div>
-        </div>
-        
-        <div className="hidden md:flex items-center gap-6 text-sm font-semibold text-gray-400">
-          <Link to="/" className="hover:text-green-600">Home</Link>
-          <Link to="/dashboard" className="hover:text-green-600">Dashboard</Link>
-          <Link to="/transactions" className="text-green-600 border-b-2 border-green-600 pb-1">Transactions</Link>
+      <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-sm transition-all duration-300">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           
-          {/* SEMUA LINK SUDAH DIPERBAIKI */}
-          <Link to="/carbon-impact" className="hover:text-green-600">Carbon Impact</Link>
-          <Link to="/recommendations" className="hover:text-green-600">Recommendations</Link>
-          <Link to="/rewards" className="hover:text-green-600">Rewards</Link>
-          <Link to="/profile" className="hover:text-green-600">Profile</Link>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center hover:bg-green-200 transition">🔔</button>
-          {/* Foto profil juga diubah menjadi Link agar bisa diklik ke halaman profile */}
-          <Link to="/profile" className="w-10 h-10 bg-green-600 rounded-full border-2 border-white shadow-sm overflow-hidden cursor-pointer block">
-            <img src="https://ui-avatars.com/api/?name=Alex+Chen&background=00A651&color=fff" alt="User" />
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition group">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#00A651] to-green-700 flex items-center justify-center rounded-xl shadow-lg shadow-green-200 group-hover:scale-105 transition-transform">
+              <span className="text-white font-black text-[10px] tracking-widest">LOGO</span>
+            </div>
+            <span className="font-black text-xl tracking-tight text-gray-900 hidden md:block">
+              Sustaina<span className="text-[#00A651]">Pay</span>
+            </span>
           </Link>
+          
+          <div className="hidden lg:flex items-center gap-1 bg-gray-50/80 border border-gray-100 p-1.5 rounded-full shadow-inner">
+            <Link to="/" className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all">
+              {t.navHome}
+            </Link>
+            <Link to="/dashboard" className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all">
+              {t.navDashboard}
+            </Link>
+            <Link to="/transactions" className="px-5 py-2 text-sm font-black text-white bg-[#00A651] shadow-md shadow-green-200 rounded-full transition-all">
+              {t.navTransactions}
+            </Link>
+            <Link to="/carbon-impact" className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all">
+              {t.navCarbon}
+            </Link>
+            <Link to="/recommendations" className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all">
+              {t.navRec}
+            </Link>
+            <Link to="/rewards" className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all">
+              {t.navRewards}
+            </Link>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* TOMBOL TOGGLE BAHASA */}
+            <button 
+              onClick={toggleLanguage} 
+              className="bg-gray-100 border border-gray-200 text-xs font-black px-3 py-2 rounded-full shadow-sm hover:bg-gray-200 transition"
+            >
+              🌐 {safeLang}
+            </button>
+
+            <Link to="/profile" className="flex items-center gap-3 p-1.5 pr-4 bg-white border border-gray-100 rounded-full shadow-sm hover:bg-green-50 transition-all group">
+              <div className="w-8 h-8 bg-[#00A651] rounded-full overflow-hidden border-2 border-white flex items-center justify-center text-white text-xs font-bold group-hover:scale-105 transition-transform">
+                {navUser?.avatar ? <img src={navUser.avatar} alt="Profile" className="w-full h-full object-cover" /> : navUser?.initials || 'U'}
+              </div>
+              <span className="text-sm font-bold text-gray-700 hidden sm:block group-hover:text-green-700">{t.navProfile}</span>
+            </Link>
+          </div>
         </div>
       </nav>
 
       {/* CONTENT AREA */}
       <main className="max-w-7xl mx-auto px-8 py-10">
-        
-        {/* HEADER & SEARCH */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-black text-gray-900">Transaction History</h1>
-            <p className="text-gray-500 font-medium mt-1">Track your spending and its environmental impact</p>
+            <h1 className="text-3xl font-black text-gray-900">{t.title}</h1>
+            <p className="text-gray-500 font-medium mt-1">{t.subtitle}</p>
           </div>
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="relative w-full md:w-64">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-              <input 
-                type="text" 
-                placeholder="Search transactions..." 
-                className="w-full bg-white border border-gray-200 rounded-full py-2.5 pl-10 pr-4 text-sm font-medium outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition"
-              />
-            </div>
-            <button className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-full text-sm font-bold shadow-sm hover:bg-gray-50 transition flex items-center gap-2">
-              <span>⬇️</span> Export
-            </button>
+          <button onClick={() => setModalStep('SCANNER')} className="bg-[#00A651] border border-green-600 text-white px-6 py-3 rounded-full text-sm font-bold shadow-md hover:bg-green-700 transition flex items-center gap-2" >
+            <span>📷</span> {t.scanBtn}
+          </button>
+        </div>
+
+        {/* BALANCE CARD */}
+        <div className="bg-[#0B132B] rounded-3xl p-6 md:p-8 text-white mb-8 flex flex-col md:flex-row justify-between items-center shadow-lg gap-6 relative overflow-hidden">
+          <div className="absolute -right-10 -top-10 opacity-10">
+            <span className="text-9xl">💳</span>
           </div>
+          <div className="z-10 text-center md:text-left">
+            <p className="text-gray-400 text-sm font-bold mb-1">{t.balanceTitle}</p>
+            <h2 className="text-4xl font-black text-[#00A651]">Rp {Number(balance).toLocaleString('id-ID')}</h2>
+          </div>
+          <button onClick={() => setModalStep('TOPUP')} className="z-10 bg-white text-[#0B132B] px-6 py-3 rounded-xl font-black text-sm hover:bg-gray-100 transition shadow-md flex items-center gap-2">
+            <span>➕</span> {t.topupBtn}
+          </button>
         </div>
 
         {/* FILTERS */}
         <div className="flex overflow-x-auto pb-4 mb-6 gap-3 hide-scrollbar">
           {filters.map(filter => (
-            <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
-              className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
-                activeFilter === filter
-                  ? 'bg-[#00A651] text-white shadow-md'
-                  : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              {filter}
+            <button key={filter} onClick={() => setActiveFilter(filter)} className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeFilter === filter ? 'bg-[#00A651] text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`} >
+              {t.filters[filter] || filter}
             </button>
           ))}
         </div>
 
-        {/* TRANSACTION LIST */}
+        {/* LIST TRANSAKSI */}
         <div className="bg-white rounded-[3rem] shadow-sm border border-gray-50 overflow-hidden">
           <div className="p-8">
             <div className="space-y-2">
               {filteredTransactions.length > 0 ? (
                 filteredTransactions.map((item) => (
                   <div key={item.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 hover:bg-gray-50 rounded-2xl transition cursor-pointer border border-transparent hover:border-gray-100 gap-4">
-                    
-                    {/* Left: Icon & Details */}
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm shrink-0">
                         {item.icon}
                       </div>
                       <div>
-                        <p className="font-black text-gray-900 text-base">{item.name}</p>
+                        <p className="font-black text-gray-900 text-base">{item.name || item.description || 'Transaksi'}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">{item.category}</span>
+                          <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">{t.filters[item.category] || item.category}</span>
                           <span className="text-xs font-bold text-gray-400">•</span>
-                          <span className="text-xs font-bold text-gray-400">{item.date}</span>
+                          <span className="text-xs font-bold text-gray-400">{item.date || t.latestLabel}</span>
                         </div>
                       </div>
                     </div>
-
-                    {/* Right: Amounts & Impact Badge */}
                     <div className="flex items-center justify-between w-full md:w-auto md:justify-end gap-6 md:gap-8 border-t md:border-t-0 pt-3 md:pt-0 border-gray-100 mt-2 md:mt-0">
                       <div className="text-left md:text-right">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">Amount</p>
-                        <p className="font-black text-gray-900">{item.amount}</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">{t.amountLabel}</p>
+                        <p className={`font-black ${String(item.amount).includes('+') ? 'text-green-500' : 'text-gray-900'}`}>{item.amount}</p>
                       </div>
                       <div className="text-left md:text-right">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">Carbon</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">{t.carbonLabel}</p>
                         <div className="flex items-center gap-2">
-                          <p className="font-black text-gray-900">{item.carbon}</p>
-                          {/* Impact Indicator Indicator */}
-                          <span className={`w-2 h-2 rounded-full ${
-                            item.impact === 'low' ? 'bg-green-500' : 
-                            item.impact === 'medium' ? 'bg-yellow-500' : 'bg-red-500'
-                          }`}></span>
+                          <p className="font-black text-gray-900">{item.carbon || (item.calculated_carbon_kg ? `${item.calculated_carbon_kg} kg` : '-')}</p>
+                          <span className={`w-2 h-2 rounded-full ${item.impact === 'low' ? 'bg-green-500' : item.impact === 'medium' ? 'bg-yellow-500' : item.impact === 'high' ? 'bg-red-500' : 'bg-gray-300'}`}></span>
                         </div>
                       </div>
                     </div>
-
                   </div>
                 ))
               ) : (
                 <div className="text-center py-12">
                   <div className="text-4xl mb-4">📭</div>
-                  <h3 className="text-lg font-black text-gray-900">No transactions found</h3>
-                  <p className="text-sm text-gray-500 mt-1">Try changing your filters or check back later.</p>
+                  <h3 className="text-lg font-black text-gray-900">{t.noTransactionsTitle}</h3>
+                  <p className="text-sm text-gray-500 mt-1">{t.noTransactionsDesc}</p>
                 </div>
               )}
             </div>
-            
-            {/* PAGINATION */}
-            {filteredTransactions.length > 0 && (
-              <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-100">
-                <p className="text-sm font-bold text-gray-400">Showing {filteredTransactions.length} results</p>
-                <div className="flex gap-2">
-                  <button className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition font-bold">{'<'}</button>
-                  <button className="w-8 h-8 rounded-full bg-[#00A651] text-white flex items-center justify-center shadow-md font-bold">1</button>
-                  <button className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition font-bold">2</button>
-                  <button className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition font-bold">3</button>
-                  <button className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition font-bold">{'>'}</button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
-
       </main>
 
-      {/* FOOTER */}
-      <footer className="bg-[#0B132B] text-white py-16 mt-12">
-        <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-4 gap-12">
-          <div>
-            <div className="w-16 h-10 bg-green-800 border-2 border-white mb-6 flex items-center justify-center text-[8px] font-bold">LOGO</div>
-            <p className="text-xs text-gray-400 leading-relaxed font-medium">
-              Track your carbon footprint with every transactions.
-            </p>
-          </div>
-          <div>
-            <h5 className="font-black text-sm mb-6">Product</h5>
-            <ul className="text-xs text-gray-400 space-y-4 font-bold">
-              <li className="hover:text-white cursor-pointer transition">Features</li>
-              <li className="hover:text-white cursor-pointer transition">Pricing</li>
-              <li className="hover:text-white cursor-pointer transition">Security</li>
-            </ul>
-          </div>
-          <div>
-            <h5 className="font-black text-sm mb-6">Company</h5>
-            <ul className="text-xs text-gray-400 space-y-4 font-bold">
-              <li className="hover:text-white cursor-pointer transition">About</li>
-              <li className="hover:text-white cursor-pointer transition">Blog</li>
-              <li className="hover:text-white cursor-pointer transition">Careers</li>
-            </ul>
-          </div>
-          <div>
-            <h5 className="font-black text-sm mb-6">Support</h5>
-            <ul className="text-xs text-gray-400 space-y-4 font-bold">
-              <li className="hover:text-white cursor-pointer transition">Help Center</li>
-              <li className="hover:text-white cursor-pointer transition">Contact</li>
-              <li className="hover:text-white cursor-pointer transition">Privacy</li>
-            </ul>
+      {/* --- MODAL BOX SYSTEM --- */}
+      {modalStep !== 'NONE' && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-md relative shadow-2xl animate-[fadeIn_0.3s_ease-out] max-h-[90vh] overflow-y-auto">
+            <button onClick={closeModal} className="absolute top-6 right-6 w-8 h-8 bg-gray-100 text-gray-500 hover:bg-red-100 hover:text-red-500 rounded-full flex items-center justify-center font-bold transition z-50">✕</button>
+
+            {modalStep === 'TOPUP' && (
+              <>
+                <h2 className="text-2xl font-black text-gray-900 mb-2 mt-2">{t.topupHeader}</h2>
+                <p className="text-sm text-gray-500 font-medium mb-6">{t.topupSub}</p>
+                <div className="space-y-4 mb-6 text-left">
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 mb-1 block">{t.paymentMethod}</label>
+                    <select value={topupMethod} onChange={(e) => setTopupMethod(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 font-bold outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500">
+                      <option value="BCA">Bank BCA</option><option value="Mandiri">Bank Mandiri</option><option value="GoPay">GoPay</option><option value="OVO">OVO</option><option value="Dana">DANA</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 mb-1 block">{t.topupNominal}</label>
+                    <input type="number" value={topupAmount} onChange={(e) => setTopupAmount(e.target.value)} placeholder="Contoh: 50000" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 font-bold outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500" />
+                  </div>
+                </div>
+                <button onClick={handleTopupSubmit} className="w-full bg-[#00A651] text-white py-3.5 rounded-2xl font-black text-sm hover:bg-green-700 transition shadow-md">{t.confirmTopup}</button>
+              </>
+            )}
+
+            {modalStep === 'SCANNER' && (
+              <>
+                <h2 className="text-2xl font-black text-gray-900 mb-2 mt-2">{t.scanHeader}</h2>
+                <p className="text-sm text-gray-500 font-medium mb-6">{t.scanSub}</p>
+                {isScanning ? (
+                  <div className="mb-6 bg-gray-100 p-2 rounded-2xl text-center">
+                    <Scanner onResult={(text, result) => handleScanSukses(text)} onError={(error) => console.log(error?.message)} />
+                    <button onClick={() => setIsScanning(false)} className="w-full mt-4 bg-red-50 text-red-500 py-2.5 rounded-xl font-bold hover:bg-red-100 transition">{t.cancelScan}</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setIsScanning(true)} className="w-full mb-6 bg-[#00A651] text-white py-4 rounded-2xl font-black text-base hover:bg-green-700 transition shadow-md flex items-center justify-center gap-2">
+                    <span className="text-xl">📷</span> {t.openCamera}
+                  </button>
+                )}
+                <div className="relative flex items-center py-2 mb-4">
+                  <div className="flex-grow border-t border-gray-200"></div><span className="flex-shrink-0 mx-4 text-gray-400 text-[10px] font-black tracking-widest">{t.orManual}</span><div className="flex-grow border-t border-gray-200"></div>
+                </div>
+                <div className="space-y-4 text-left">
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">{t.provider}</label>
+                      <select value={scanProvider} onChange={(e) => setScanProvider(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 font-bold text-sm outline-none">
+                        <option value="Gojek">Gojek</option><option value="Grab">Grab</option><option value="Maxim">Maxim</option><option value="Indrive">Indrive</option><option value="TransJakarta">TransJakarta</option>
+                      </select>
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">{t.category}</label>
+                      <select value={scanCategory} onChange={(e) => setScanCategory(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 font-bold text-sm outline-none">
+                        <option value="Motorcycle">Motorcycle</option><option value="Car">Car</option><option value="Bus">Bus</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">{t.distanceLabel}</label>
+                    <input type="number" value={scanDistance} onChange={(e) => setScanDistance(e.target.value)} placeholder="Contoh: 5.5" step="0.1" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 font-bold text-sm outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">{t.costLabel}</label>
+                    <input type="number" value={scanCost} onChange={(e) => setScanCost(e.target.value)} placeholder="Contoh: 15000" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 font-bold text-sm outline-none" />
+                  </div>
+                </div>
+                <button onClick={handleProcessScan} className="w-full mt-6 bg-[#0B132B] text-white py-3.5 rounded-2xl font-black text-sm hover:bg-black transition shadow-sm flex items-center justify-center gap-2">
+                  <span>✨</span> {t.btnAnalyze}
+                </button>
+              </>
+            )}
+
+            {modalStep === 'LOADING_AI' && (
+              <div className="text-center py-10">
+                <div className="w-16 h-16 border-4 border-green-200 border-t-green-600 rounded-full animate-spin mx-auto mb-6"></div>
+                <h2 className="text-xl font-black text-gray-900">{t.loadingHeader}</h2>
+                <p className="text-sm text-gray-500 mt-2">{t.loadingSub}</p>
+              </div>
+            )}
+
+            {modalStep === 'PAYMENT' && scannedData && (
+              <>
+                <h2 className="text-2xl font-black text-gray-900 mb-2 mt-2">{t.payHeader}</h2>
+                <p className="text-sm text-gray-500 font-medium mb-6">{t.paySub}</p>
+                <div className="bg-gray-50 rounded-2xl p-5 mb-4 border border-gray-100">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-bold text-gray-500">{t.service}</span>
+                    <span className="text-sm font-black text-gray-900 flex items-center gap-2">{scannedData.icon} {scannedData.name}</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-bold text-gray-500">{t.distance}</span>
+                    <span className="text-sm font-black text-gray-900">{scannedData.distance} km</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+                    <span className="text-sm font-bold text-gray-500">{t.deductBalance}</span>
+                    <span className="text-xl font-black text-red-500">{scannedData.amount.replace('-', '')}</span>
+                  </div>
+                </div>
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-5 mb-6 border border-blue-100 relative overflow-hidden">
+                  <div className="absolute -right-4 -top-4 text-4xl opacity-20">✨</div>
+                  <p className="text-xs font-black text-indigo-500 uppercase tracking-wider mb-1 flex items-center gap-1">✨ AI Impact Prediction</p>
+                  <p className="text-sm font-bold text-gray-700 leading-relaxed">
+                    {safeLang === 'ID' ? 'Emisi karbon:' : 'Carbon footprint:'} <span className="font-black text-gray-900 bg-indigo-100 px-2 py-0.5 rounded">{scannedData.carbon}</span>
+                  </p>
+                </div>
+                <div className="mb-6">
+                  <label className="text-xs font-bold text-gray-500 mb-2 block">{t.pinLabel}</label>
+                  <input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="••••••" className="w-full bg-white border border-gray-300 rounded-xl py-3 px-4 text-center text-lg tracking-widest font-black outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition" />
+                  {passwordError && <p className="text-xs text-red-500 font-bold mt-2 text-center">{passwordError}</p>}
+                </div>
+                <button onClick={handleProcessPayment} className="w-full bg-[#00A651] text-white py-3.5 rounded-2xl font-black text-sm hover:bg-green-700 transition shadow-md">{t.btnPay}</button>
+              </>
+            )}
+
+            {modalStep === 'SUCCESS' && scannedData && (
+              <div className="text-center py-4">
+                <div className="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center text-4xl mx-auto mb-6 shadow-inner">✓</div>
+                <h2 className="text-2xl font-black text-gray-900 mb-2">{t.successHeader}</h2>
+                <p className="text-sm text-gray-500 font-medium mb-8">{t.remainingBalance}: Rp {Number(balance).toLocaleString('id-ID')}</p>
+                <div className="bg-[#F6FCF9] border-2 border-green-100 rounded-2xl p-6 mb-8 text-left relative">
+                   <div className="absolute -top-3 -left-2 text-2xl">🤖</div>
+                   <p className="text-xs font-black text-green-600 uppercase tracking-wider mb-2">{t.aiInsights}</p>
+                   <p className="text-sm font-bold text-gray-700 leading-relaxed">{scannedData.recommendation}</p>
+                </div>
+                <button onClick={handleFinishTransaction} className="w-full bg-gray-900 text-white py-3.5 rounded-2xl font-black text-sm hover:bg-black transition shadow-md">{t.btnFinish}</button>
+              </div>
+            )}
+
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-8 mt-16 pt-8 border-t border-gray-800 text-center text-[10px] text-gray-500 font-bold">
-          © 2026 SustainaPay. All rights reserved.
-        </div>
-      </footer>
+      )}
 
     </div>
   );

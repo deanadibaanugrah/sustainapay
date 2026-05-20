@@ -2,17 +2,18 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class EmissionFactor extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['vehicle_type', 'kg_co2_per_km'];
+    protected $table = 'emission_factors';
 
-    public function carbonRecords()
-    {
-        return $this->hasMany(CarbonRecord::class);
-    }
+    protected $fillable = [
+        'vehicle_type',
+        'factor',
+        'unit'
+    ];
 }
