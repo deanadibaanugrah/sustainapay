@@ -20,7 +20,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/transactions/topup', [TransactionController::class, 'topup']);
 
 // ---> CALLBACK MIDTRANS (WAJIB PUBLIC & TIDAK BOLEH ADA DUPLIKAT) <---
-Route::post('/midtrans-callback', [TransactionController::class, 'callback']);
+Route::post('/midtrans-callback', [PaymentController::class, 'callback']);
 
 // ==========================================
 // RUTE ADMIN (SEMENTARA PUBLIC UNTUK TESTING UI)
@@ -73,7 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/summary', [TransactionController::class, 'summary']);
     Route::get('/transactions/history', [TransactionController::class, 'history']);
     
-    // Wallet Operations
+    // Wallet Operations & Payments (Mendukung data AI tambahan di body)
     Route::post('/transactions/transfer', [TransactionController::class, 'transfer']);
     Route::post('/transactions/payment', [TransactionController::class, 'processPayment']);
     
@@ -83,7 +83,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // QR Processing
     Route::post('/process-qr', [QrController::class, 'processQr']); 
     
-    // AI Recommendations
+    // AI Recommendations History & Endpoint
     Route::get('/ai/recommendations', [AiController::class, 'index']);
     Route::post('/ai/recommendations/generate', [AiController::class, 'generate']);
 });

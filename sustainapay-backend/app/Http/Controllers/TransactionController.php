@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Transaction;
 use App\Models\CarbonRecord;
 use App\Models\User;
+use App\Models\AiRecommendation; // <-- Memanggil tabel AI
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -168,11 +169,14 @@ class TransactionController extends Controller
 
     public function processPayment(Request $request)
     {
+        // 1. Validasi diperbarui untuk menerima data AI dari frontend React
         $request->validate([
             'amount' => 'required|numeric',
             'transaction_id' => 'nullable',
             'category' => 'required|string', 
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
+            'ai_analysis' => 'nullable|string', // <-- Teks dari Gemini
+            'total_emisi' => 'nullable|numeric' // <-- Angka emisi karbon
         ]);
 
         /** @var \App\Models\User $user */
@@ -193,6 +197,16 @@ class TransactionController extends Controller
                 'status' => 'Completed',
                 'description' => $request->description ?? 'Pembayaran Perjalanan Mandiri / QR'
             ]);
+
+            // 2. Simpan Saran AI jika dikirim oleh React saat pembayaran
+            if ($request->filled('ai_analysis')) {
+                AiRecommendation::create([
+                    'user_id' => $user->id,
+                    'transaction_id' => $transaction->id,
+                    'total_emisi' => $request->total_emisi ?? 0,
+                    'ai_analysis' => $request->ai_analysis,
+                ]);
+            }
 
             return response()->json([
                 'status' => 'Success',

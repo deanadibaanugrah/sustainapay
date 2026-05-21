@@ -15,9 +15,9 @@ class DashboardController extends Controller
             'data' => [
                 'user' => $request->user(),
                 'summary' => [
-                    'total_carbon' => '557.4',
-                    'this_month' => '124.5',
-                    'carbon_saved' => '124.5'
+                    'total_carbon' => '500',
+                    'this_month' => '125',
+                    'carbon_saved' => '185.5'
                 ],
                 // Tambahkan data dummy lainnya sesuai kebutuhan Frontend kamu
             ]

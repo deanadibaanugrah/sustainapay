@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\User; // Pastikan model User ada
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
@@ -17,13 +17,12 @@ class PaymentController extends Controller
         if ($hashed == $request->signature_key) {
             if ($request->transaction_status == 'capture' || $request->transaction_status == 'settlement') {
                 
-                // LOGIKA: Update Saldo di Database
-                // Di sini saya asumsikan order_id yang dikirim adalah ID USER atau ID Transaksi
-                // Sesuaikan dengan cara kamu mengirim order_id di frontend
+                // Asumsi: Jika order_id membawa ID User. Jika order_id beda format, sesuaikan logic pencariannya.
                 $user = User::find($request->order_id); 
                 
                 if ($user) {
-                    $user->balance += $request->gross_amount; // Tambah saldo
+                    // PERBAIKAN: Ubah balance menjadi wallet_balance
+                    $user->wallet_balance += $request->gross_amount; 
                     $user->save();
                 }
 
