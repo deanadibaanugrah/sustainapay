@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\UserVoucher;
+use App\Models\Voucher;
 use Illuminate\Support\Str;
 
 class RewardController extends Controller
@@ -29,11 +30,15 @@ class RewardController extends Controller
             ];
         });
 
+        $availableVouchers = Voucher::orderBy('cost', 'asc')->get();
+
         return response()->json([
             'success' => true,
             'data' => [
                 'points' => $user->reward_points, // using the reward_points column in users table
-                'vouchers' => $myVouchers
+                'userTier' => $user->role ?? 'User', // Send user role as tier
+                'vouchers' => $myVouchers,
+                'catalog' => $availableVouchers
             ]
         ]);
     }
@@ -41,35 +46,40 @@ class RewardController extends Controller
     public function redeem(Request $request)
     {
         $request->validate([
-            'title' => 'required|string',
-            'provider' => 'required|string',
-            'icon' => 'nullable|string',
-            'type' => 'required|string',
-            'cost' => 'required|integer|min:1'
+            'voucher_id' => 'required|exists:vouchers,id'
         ]);
 
         $user = $request->user();
+        $voucherCatalog = Voucher::find($request->voucher_id);
 
-        if ($user->reward_points < $request->cost) {
+        if (!$voucherCatalog) {
             return response()->json([
                 'success' => false,
-                'message' => 'Not enough points'
+                'message' => 'Voucher tidak ditemukan'
+            ], 404);
+        }
+
+        // Cek Poin
+        if ($user->reward_points < $voucherCatalog->cost) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Poin tidak cukup'
             ], 400);
         }
 
         // Deduct points
-        $user->reward_points -= $request->cost;
+        $user->reward_points -= $voucherCatalog->cost;
         $user->save();
 
         // Create voucher
         $voucherCode = strtoupper(Str::random(8));
         $voucher = UserVoucher::create([
             'user_id' => $user->id,
-            'title' => $request->title,
-            'provider' => $request->provider,
-            'icon' => $request->icon,
-            'type' => $request->type,
-            'cost' => $request->cost,
+            'title' => $voucherCatalog->title,
+            'provider' => $voucherCatalog->provider,
+            'icon' => $voucherCatalog->icon,
+            'type' => $voucherCatalog->type,
+            'cost' => $voucherCatalog->cost,
             'voucher_code' => $voucherCode
         ]);
 

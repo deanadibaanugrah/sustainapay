@@ -100,57 +100,11 @@ const translations = {
   }
 };
 
-// --- Data Dummy ---
-const initialRewards = [
-  {
-    id: 1,
-    title: '50% Off Zero-Waste Kit',
-    provider: 'GreenLife',
-    cost: 1000,
-    image: 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&w=600&q=80',
-    icon: '♻️',
-    type: 'reward'
-  },
-  {
-    id: 2,
-    title: 'Free City Transit Pass',
-    provider: 'EcoRide',
-    cost: 800,
-    image: 'https://images.unsplash.com/photo-1519003722824-194d4455a60c?auto=format&fit=crop&w=600&q=80',
-    icon: '🚌',
-    type: 'reward'
-  },
-  {
-    id: 3,
-    title: '15% Off Organic Groceries',
-    provider: 'FreshFarm',
-    cost: 500,
-    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80',
-    icon: '🥦',
-    type: 'reward'
-  }
-];
-
-const donationsData = [
-  {
-    id: 4,
-    title: 'Donate to Reforestation',
-    provider: 'Plant 5 Trees',
-    cost: 1500,
-    image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80',
-    icon: '🌳',
-    type: 'donation'
-  },
-  {
-    id: 5,
-    title: 'Ocean Cleanup Drive',
-    provider: 'SeaSavers',
-    cost: 1200,
-    image: 'https://images.unsplash.com/photo-1621451537084-482c73073e0f?auto=format&fit=crop&w=600&q=80',
-    icon: '🌊',
-    type: 'donation'
-  }
-];
+// Dummy images fallback
+const defaultImages = {
+  reward: 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&w=600&q=80',
+  donation: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80'
+};
 
 // Internal keys untuk state Tabs (jangan diterjemahkan agar logic tidak rusak)
 const tabKeys = ['Redeem Rewards', 'My Vouchers', 'Impact Donations'];
@@ -163,6 +117,7 @@ const RewardsPage = () => {
   const [activeTab, setActiveTab] = useState('Redeem Rewards');
   const [userPoints, setUserPoints] = useState(0);
   const [myVouchers, setMyVouchers] = useState([]);
+  const [catalog, setCatalog] = useState([]);
   const [toastMessage, setToastMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   
@@ -210,6 +165,7 @@ const RewardsPage = () => {
         if (res.ok && result.success) {
           setUserPoints(result.data.points || 0);
           setMyVouchers(result.data.vouchers || []);
+          setCatalog(result.data.catalog || []);
         }
       } catch (err) {
         console.error("Error fetching rewards:", err);
@@ -221,9 +177,25 @@ const RewardsPage = () => {
     fetchRewardsData();
   }, []);
 
+  // Helper check tier based on POINTS
+  const getTierInfo = (points) => {
+    if (points >= 5000) return { current: 'Platinum', next: 'Max Tier', nextReq: 5000, progress: 100, icon: '👑' };
+    if (points >= 1500) return { current: 'Gold', next: 'Platinum', nextReq: 5000, progress: (points/5000)*100, icon: '🥇' };
+    if (points >= 500) return { current: 'Silver', next: 'Gold', nextReq: 1500, progress: (points/1500)*100, icon: '🥈' };
+    return { current: 'Bronze', next: 'Silver', nextReq: 500, progress: (points/500)*100, icon: '🥉' };
+  };
+  const tierInfo = getTierInfo(userPoints);
+
+  const tierWeight = { 'Bronze': 1, 'Silver': 2, 'Gold': 3, 'Platinum': 4 };
+  const checkTier = (required) => {
+    const requiredWeight = tierWeight[required] || 1; 
+    const currentWeight = tierWeight[tierInfo.current];
+    return currentWeight >= requiredWeight;
+  };
+
   // Fungsi untuk redeem reward/donation ke backend
   const handleRedeem = async (item) => {
-    if (userPoints >= item.cost) {
+    if (userPoints >= item.cost && checkTier(item.tier_required)) {
       try {
         const token = localStorage.getItem('token');
         const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/rewards/redeem`, {
@@ -233,11 +205,7 @@ const RewardsPage = () => {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            title: item.title,
-            provider: item.provider,
-            icon: item.icon,
-            type: item.type,
-            cost: item.cost
+            voucher_id: item.id
           })
         });
         
@@ -283,7 +251,7 @@ const RewardsPage = () => {
       )}
 
       {/* NAVBAR - GAYA LANDING PAGE (MODERN & FLOATING) */}
-      <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-sm transition-all duration-300">
+      <nav className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           
           {/* KIRI: Logo & Nama Brand */}
@@ -356,9 +324,9 @@ const RewardsPage = () => {
         </div>
 
         {/* POINTS BANNER */}
-        <div className="bg-[#0B132B] text-white rounded-[2.5rem] p-8 md:p-10 mb-10 shadow-xl flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden transition-all duration-300">
+        <div className="bg-[#0B132B] text-white rounded-3xl p-8 md:p-10 mb-10 shadow-lg flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
           {/* Background Decoration */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-green-500 opacity-10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/4"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-green-500 opacity-10 rounded-full -translate-y-1/2 translate-x-1/4"></div>
 
           <div className="relative z-10 text-center md:text-left">
             <p className="text-gray-400 font-bold uppercase tracking-wider text-sm mb-2">{t.ptsBalance}</p>
@@ -370,15 +338,15 @@ const RewardsPage = () => {
           <div className="relative z-10 w-full md:w-1/2 bg-white/10 p-6 rounded-[2rem] border border-white/10 backdrop-blur-sm">
             <div className="flex justify-between items-end mb-3">
               <div>
-                <p className="font-bold text-white mb-1">{t.platinumTier}</p>
+                <p className="font-bold text-white mb-1">Tingkat {tierInfo.current}</p>
                 <p className="text-xs text-gray-400 font-medium">
-                  {3000 - userPoints > 0 ? 3000 - userPoints : 0} {t.ptsAway}
+                  {tierInfo.nextReq > userPoints ? `${tierInfo.nextReq - userPoints} poin lagi menuju Tingkat ${tierInfo.next}!` : 'Tingkat Maksimal!'}
                 </p>
               </div>
-              <span className="text-xl">👑</span>
+              <span className="text-xl">{tierInfo.icon}</span>
             </div>
             <div className="w-full bg-black/30 h-3 rounded-full overflow-hidden">
-              <div className="bg-gradient-to-r from-[#00A651] to-green-300 h-full rounded-full transition-all duration-1000" style={{ width: `${Math.min((userPoints / 3000) * 100, 100)}%` }}></div>
+              <div className="bg-gradient-to-r from-[#00A651] to-green-300 h-full rounded-full transition-all duration-1000" style={{ width: `${tierInfo.progress}%` }}></div>
             </div>
           </div>
         </div>
@@ -417,13 +385,18 @@ const RewardsPage = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {initialRewards.map((item) => (
+              {catalog.filter(v => v.type === 'reward').map((item) => (
                 <div key={item.id} className="bg-white rounded-[2rem] overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group">
                   <div className="relative h-40 overflow-hidden">
-                    <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img src={item.image || defaultImages.reward} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-black text-gray-900 shadow-sm flex items-center gap-1">
                       <span>{item.icon}</span> {item.provider}
                     </div>
+                    {item.tier_required && item.tier_required !== 'Bronze' && (
+                       <div className="absolute top-3 right-3 bg-indigo-500 text-white px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider">
+                         {item.tier_required}
+                       </div>
+                    )}
                   </div>
                   <div className="p-5 flex flex-col flex-grow">
                     <h3 className="text-lg font-bold text-gray-900 mb-4 leading-snug">{item.title}</h3>
@@ -436,14 +409,16 @@ const RewardsPage = () => {
                       </div>
                       <button 
                         onClick={() => handleRedeem(item)}
-                        disabled={userPoints < item.cost}
+                        disabled={userPoints < item.cost || !checkTier(item.tier_required)}
                         className={`w-full py-3 rounded-xl text-sm font-bold transition-colors shadow-sm ${
-                          userPoints >= item.cost 
+                          (userPoints >= item.cost && checkTier(item.tier_required))
                             ? 'bg-gray-900 text-white hover:bg-[#00A651]' 
                             : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         }`}
                       >
-                        {userPoints >= item.cost ? t.redeemNow : t.notEnough}
+                        {!checkTier(item.tier_required) 
+                          ? `Requires ${item.tier_required}` 
+                          : userPoints >= item.cost ? t.redeemNow : t.notEnough}
                       </button>
                     </div>
                   </div>
@@ -493,13 +468,18 @@ const RewardsPage = () => {
         {activeTab === 'Impact Donations' && (
           <div className="animate-[fadeIn_0.3s_ease-out]">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {donationsData.map((item) => (
+              {catalog.filter(v => v.type === 'donation').map((item) => (
                 <div key={item.id} className="bg-white rounded-[2rem] overflow-hidden border border-green-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group">
                   <div className="relative h-40 overflow-hidden">
-                    <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img src={item.image || defaultImages.donation} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     <div className="absolute top-3 left-3 bg-[#00A651] text-white px-3 py-1 rounded-full text-xs font-black shadow-sm flex items-center gap-1">
                       <span>{item.icon}</span> {t.ngoPartner}
                     </div>
+                    {item.tier_required && item.tier_required !== 'Bronze' && (
+                       <div className="absolute top-3 right-3 bg-indigo-500 text-white px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider">
+                         {item.tier_required}
+                       </div>
+                    )}
                   </div>
                   <div className="p-5 flex flex-col flex-grow">
                     <h3 className="text-lg font-bold text-gray-900 mb-4 leading-snug">{item.title}</h3>
@@ -512,14 +492,16 @@ const RewardsPage = () => {
                       </div>
                       <button 
                         onClick={() => handleRedeem(item)}
-                        disabled={userPoints < item.cost}
+                        disabled={userPoints < item.cost || !checkTier(item.tier_required)}
                         className={`w-full py-3 rounded-xl text-sm font-bold transition-colors shadow-sm ${
-                          userPoints >= item.cost 
+                          (userPoints >= item.cost && checkTier(item.tier_required))
                             ? 'bg-[#00A651] text-white hover:bg-green-700' 
                             : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         }`}
                       >
-                        {userPoints >= item.cost ? t.donatePoints : t.notEnough}
+                        {!checkTier(item.tier_required) 
+                          ? `Requires ${item.tier_required}` 
+                          : userPoints >= item.cost ? t.donatePoints : t.notEnough}
                       </button>
                     </div>
                   </div>

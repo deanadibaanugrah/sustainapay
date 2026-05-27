@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Transaction;
 use App\Models\CarbonRecord;
+use App\Models\Voucher;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash; // WAJIB untuk Enkripsi Password Baru
 use Carbon\Carbon;
@@ -161,6 +162,85 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Gagal menghapus data pengguna', 
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ==========================================
+    // FUNGSI CRUD VOUCHERS / REWARDS
+    // ==========================================
+    
+    public function vouchers()
+    {
+        try {
+            $vouchers = Voucher::orderBy('created_at', 'desc')->get();
+            return response()->json(['vouchers' => $vouchers]);
+        } catch (\Exception $e) {
+            return response()->json(['vouchers' => [], 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function storeVoucher(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string',
+            'provider' => 'required|string',
+            'type' => 'required|in:reward,donation',
+            'cost' => 'required|integer|min:1',
+            'tier_required' => 'required|string'
+        ]);
+
+        try {
+            $voucher = Voucher::create($request->all());
+            return response()->json([
+                'message' => 'Voucher berhasil ditambahkan!',
+                'voucher' => $voucher
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal menambah voucher', 
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateVoucher(Request $request, $id)
+    {
+        $request->validate([
+            'title' => 'required|string',
+            'provider' => 'required|string',
+            'type' => 'required|in:reward,donation',
+            'cost' => 'required|integer|min:1',
+            'tier_required' => 'required|string'
+        ]);
+
+        try {
+            $voucher = Voucher::findOrFail($id);
+            $voucher->update($request->all());
+            return response()->json([
+                'message' => 'Voucher berhasil diubah!',
+                'voucher' => $voucher
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal mengubah voucher', 
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteVoucher($id)
+    {
+        try {
+            $voucher = Voucher::findOrFail($id);
+            $voucher->delete();
+            return response()->json([
+                'message' => 'Voucher berhasil dihapus!'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal menghapus voucher', 
                 'error' => $e->getMessage()
             ], 500);
         }

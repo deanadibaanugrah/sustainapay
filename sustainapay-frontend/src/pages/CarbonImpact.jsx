@@ -169,7 +169,6 @@ const CarbonImpact = () => {
   };
 
   const [backendData, setBackendData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchCarbonImpact = async () => {
@@ -182,8 +181,6 @@ const CarbonImpact = () => {
         if (res.ok) setBackendData(result.data);
       } catch (err) {
         console.error(err);
-      } finally {
-        setIsLoading(false);
       }
     };
     fetchCarbonImpact();
@@ -191,19 +188,11 @@ const CarbonImpact = () => {
 
   const currentData = backendData ? backendData[timeFrame] : defaultDataMap[timeFrame];
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F6FCF9]">
-        <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#F6FCF9] font-sans text-gray-900">
       
       {/* NAVBAR - GAYA LANDING PAGE (MODERN & FLOATING) */}
-      <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-sm transition-all duration-300">
+      <nav className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           
           {/* KIRI: Logo & Nama Brand */}
@@ -299,7 +288,7 @@ const CarbonImpact = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           
           {/* Main Visual Score */}
-          <div className="lg:col-span-1 bg-[#0B132B] text-white p-10 rounded-[3rem] shadow-xl relative overflow-hidden flex flex-col justify-center items-center text-center transition-all duration-300">
+          <div className="lg:col-span-1 bg-[#0B132B] text-white p-10 rounded-3xl shadow-lg relative overflow-hidden flex flex-col justify-center items-center text-center">
             <div className="relative z-10">
               <span className="bg-green-500/20 text-green-400 font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block">{t.greatProgress}</span>
               <h2 className="text-6xl font-black mb-2 mt-2">{currentData.total}<span className="text-2xl text-gray-400 ml-1">{currentData.unit}</span></h2>
@@ -311,7 +300,7 @@ const CarbonImpact = () => {
               </div>
             </div>
             {/* Background decoration */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-green-500 opacity-20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/4"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-green-500 opacity-20 rounded-full -translate-y-1/2 translate-x-1/4"></div>
           </div>
 
           {/* 3 Quick Stats Cards */}
@@ -347,7 +336,7 @@ const CarbonImpact = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           
           {/* Emission Breakdown */}
-          <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-50">
+          <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-50">
             <h3 className="text-xl font-black text-gray-900 mb-8">{t.breakdownTitle}</h3>
             
             <div className="space-y-6">
@@ -378,7 +367,7 @@ const CarbonImpact = () => {
           </div>
 
           {/* Insights & Actions */}
-          <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-50 flex flex-col">
+          <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-50 flex flex-col">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-black text-gray-900">{t.insightsTitle}</h3>
               <button 

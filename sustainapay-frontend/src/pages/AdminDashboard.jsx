@@ -5,12 +5,13 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { 
-  Users, Activity, Zap, FileText, Settings, Search, Bell, Menu, X, Edit, Trash
+  Users, Activity, Search, Bell, Menu, X, Edit, Trash, Gift, Plus
 } from 'lucide-react';
 
 const AdminDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [usersData, setUsersData] = useState([]);
+  const [vouchersData, setVouchersData] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // State untuk navigasi sidebar
@@ -31,6 +32,21 @@ const AdminDashboard = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
 
+  // State untuk MODAL VOUCHER
+  const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
+  const [isDeleteVoucherModalOpen, setIsDeleteVoucherModalOpen] = useState(false);
+  const [editingVoucherId, setEditingVoucherId] = useState(null);
+  const [voucherToDelete, setVoucherToDelete] = useState(null);
+  const [voucherForm, setVoucherForm] = useState({
+    title: '',
+    provider: '',
+    icon: '',
+    image: '',
+    type: 'reward',
+    cost: 500,
+    tier_required: 'Bronze'
+  });
+
   // Ambil semua data dari backend
   const fetchAllData = () => {
     const token = localStorage.getItem('token'); 
@@ -43,13 +59,20 @@ const AdminDashboard = () => {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
     });
 
-    Promise.all([fetchDashboard, fetchUsers])
-      .then(([dashboardRes, usersRes]) => {
+    const fetchVouchers = axios.get(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/admin/vouchers`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+    });
+
+    Promise.all([fetchDashboard, fetchUsers, fetchVouchers])
+      .then(([dashboardRes, usersRes, vouchersRes]) => {
         setDashboardData(dashboardRes.data);
         
         // Fallback multi-key agar aman jika response berwujud objek ber-key atau langsung array
         const usersList = usersRes.data?.users || usersRes.data?.data || (Array.isArray(usersRes.data) ? usersRes.data : []);
         setUsersData(usersList);
+
+        const vouchersList = vouchersRes.data?.vouchers || vouchersRes.data?.data || [];
+        setVouchersData(vouchersList);
         
         setLoading(false);
       })
@@ -119,6 +142,60 @@ const AdminDashboard = () => {
     }
   };
 
+  // Handler VOUCHERS CRUD
+  const handleOpenVoucherModal = (voucher = null) => {
+    if (voucher) {
+      setEditingVoucherId(voucher.id);
+      setVoucherForm({
+        title: voucher.title, provider: voucher.provider, icon: voucher.icon || '', image: voucher.image || '',
+        type: voucher.type, cost: voucher.cost, tier_required: voucher.tier_required
+      });
+    } else {
+      setEditingVoucherId(null);
+      setVoucherForm({
+        title: '', provider: '', icon: '🎁', image: '', type: 'reward', cost: 500, tier_required: 'Bronze'
+      });
+    }
+    setIsVoucherModalOpen(true);
+  };
+
+  const handleSaveVoucher = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      if (editingVoucherId) {
+        await axios.put(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/admin/vouchers/${editingVoucherId}`, voucherForm, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        toast.success('Voucher diperbarui!');
+      } else {
+        await axios.post(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/admin/vouchers`, voucherForm, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        toast.success('Voucher ditambahkan!');
+      }
+      setIsVoucherModalOpen(false);
+      fetchAllData();
+    } catch (err) {
+      toast.error('Gagal menyimpan voucher');
+    }
+  };
+
+  const confirmDeleteVoucher = async () => {
+    if (!voucherToDelete) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/admin/vouchers/${voucherToDelete.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      toast.success('Voucher dihapus!');
+      setIsDeleteVoucherModalOpen(false);
+      fetchAllData();
+    } catch (err) {
+      toast.error('Gagal menghapus voucher');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50 text-[#00A651] font-bold">
@@ -159,14 +236,11 @@ const AdminDashboard = () => {
           >
             <Users size={20} /> Manage Users
           </button>
-          <button className="w-full flex items-center gap-3 text-gray-400 opacity-50 px-4 py-3 rounded-xl font-medium cursor-not-allowed text-left">
-            <Zap size={20} /> Emission Factors
-          </button>
-          <button className="w-full flex items-center gap-3 text-gray-400 opacity-50 px-4 py-3 rounded-xl font-medium cursor-not-allowed text-left">
-            <FileText size={20} /> Reports & Analytics
-          </button>
-          <button className="w-full flex items-center gap-3 text-gray-400 opacity-50 px-4 py-3 rounded-xl font-medium mt-auto cursor-not-allowed text-left">
-            <Settings size={20} /> Settings
+          <button 
+            onClick={() => setActiveTab('rewards')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition ${activeTab === 'rewards' ? 'bg-green-50 text-[#00A651]' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
+          >
+            <Gift size={20} /> Manage Rewards
           </button>
         </nav>
       </aside>
@@ -197,6 +271,12 @@ const AdminDashboard = () => {
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition ${activeTab === 'users' ? 'bg-green-50 text-[#00A651]' : 'text-gray-500 hover:bg-gray-50'}`}
               >
                 <Users size={20} /> Manage Users
+              </button>
+              <button 
+                onClick={() => { setActiveTab('rewards'); setIsMobileOpen(false); }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition ${activeTab === 'rewards' ? 'bg-green-50 text-[#00A651]' : 'text-gray-500 hover:bg-gray-50'}`}
+              >
+                <Gift size={20} /> Manage Rewards
               </button>
             </nav>
           </aside>
@@ -365,6 +445,83 @@ const AdminDashboard = () => {
             </div>
           )}
 
+          {/* TAB: MANAGE REWARDS */}
+          {activeTab === 'rewards' && (
+            <div className="animate-fadeIn">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-black text-gray-900">Manage Rewards ({vouchersData.length})</h2>
+                <button 
+                  onClick={() => handleOpenVoucherModal()}
+                  className="bg-[#00A651] hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm transition"
+                >
+                  <Plus size={18} /> Tambah Voucher
+                </button>
+              </div>
+
+              <div className="bg-white border border-gray-100 rounded-[2rem] shadow-xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50/70 border-b border-gray-100 text-xs font-bold uppercase tracking-wider text-gray-400">
+                        <th className="py-4 px-6">ID</th>
+                        <th className="py-4 px-6">Title</th>
+                        <th className="py-4 px-6">Provider</th>
+                        <th className="py-4 px-6">Type</th>
+                        <th className="py-4 px-6">Cost</th>
+                        <th className="py-4 px-6">Required Tier</th>
+                        <th className="py-4 px-6 text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 text-sm font-medium text-gray-700">
+                      {vouchersData.length === 0 ? (
+                        <tr>
+                          <td colSpan="7" className="py-12 text-center text-gray-400">Belum ada voucher tersedia.</td>
+                        </tr>
+                      ) : (
+                        vouchersData.map((voucher) => (
+                          <tr key={voucher.id} className="hover:bg-gray-50/50 transition">
+                            <td className="py-4 px-6 text-gray-400 font-mono text-xs">#{voucher.id}</td>
+                            <td className="py-4 px-6 font-bold text-gray-900">
+                              <span className="mr-2">{voucher.icon}</span> {voucher.title}
+                            </td>
+                            <td className="py-4 px-6 text-gray-500">{voucher.provider}</td>
+                            <td className="py-4 px-6">
+                              <span className={`px-2 py-1 rounded text-xs font-bold ${voucher.type === 'reward' ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600'}`}>
+                                {voucher.type}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6">
+                              <span className="font-bold text-[#00A651]">{voucher.cost} pts</span>
+                            </td>
+                            <td className="py-4 px-6">
+                              <span className="font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md text-xs">{voucher.tier_required}</span>
+                            </td>
+                            <td className="py-4 px-6 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <button 
+                                  onClick={() => handleOpenVoucherModal(voucher)}
+                                  className="p-2 text-blue-500 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
+                                >
+                                  <Edit size={16} />
+                                </button>
+                                <button 
+                                  onClick={() => { setVoucherToDelete(voucher); setIsDeleteVoucherModalOpen(true); }}
+                                  className="p-2 text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition"
+                                >
+                                  <Trash size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </main>
 
@@ -476,6 +633,83 @@ const AdminDashboard = () => {
               >
                 Ya, Hapus
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================ MODAL ADD/EDIT VOUCHER ================ */}
+      {isVoucherModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl animate-fadeIn max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-black text-gray-900">{editingVoucherId ? 'Edit Voucher' : 'Tambah Voucher'}</h3>
+              <button onClick={() => setIsVoucherModalOpen(false)} className="text-gray-400 hover:text-red-500 transition">
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveVoucher} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Title</label>
+                  <input type="text" required value={voucherForm.title} onChange={(e) => setVoucherForm({...voucherForm, title: e.target.value})} className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#00A651]" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Provider</label>
+                  <input type="text" required value={voucherForm.provider} onChange={(e) => setVoucherForm({...voucherForm, provider: e.target.value})} className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#00A651]" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Icon (Emoji)</label>
+                  <input type="text" value={voucherForm.icon} onChange={(e) => setVoucherForm({...voucherForm, icon: e.target.value})} className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#00A651]" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Type</label>
+                  <select value={voucherForm.type} onChange={(e) => setVoucherForm({...voucherForm, type: e.target.value})} className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#00A651]">
+                    <option value="reward">Reward (Diskon dll)</option>
+                    <option value="donation">Donation (Tanam Pohon dll)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Cost (Points)</label>
+                  <input type="number" min="1" required value={voucherForm.cost} onChange={(e) => setVoucherForm({...voucherForm, cost: e.target.value})} className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#00A651]" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Required Tier</label>
+                  <select value={voucherForm.tier_required} onChange={(e) => setVoucherForm({...voucherForm, tier_required: e.target.value})} className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#00A651]">
+                    <option value="Bronze">Bronze (0+ pts)</option>
+                    <option value="Silver">Silver (500+ pts)</option>
+                    <option value="Gold">Gold (1500+ pts)</option>
+                    <option value="Platinum">Platinum (5000+ pts)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Image URL</label>
+                  <input type="text" placeholder="https://..." value={voucherForm.image} onChange={(e) => setVoucherForm({...voucherForm, image: e.target.value})} className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#00A651]" />
+                </div>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3 mt-4">
+                <button type="button" onClick={() => setIsVoucherModalOpen(false)} className="px-5 py-2.5 text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 font-bold transition">Batal</button>
+                <button type="submit" className="px-5 py-2.5 bg-[#00A651] text-white rounded-xl hover:bg-green-700 font-bold shadow-md transition">Simpan</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================ MODAL HAPUS VOUCHER ================ */}
+      {isDeleteVoucherModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-fadeIn text-center">
+            <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash size={32} />
+            </div>
+            <h3 className="text-xl font-black text-gray-900 mb-2">Hapus Voucher</h3>
+            <p className="text-gray-500 mb-6 font-medium">Yakin menghapus voucher "{voucherToDelete?.title}"?</p>
+            <div className="flex justify-center gap-3">
+              <button onClick={() => setIsDeleteVoucherModalOpen(false)} className="px-5 py-2.5 text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 font-bold transition flex-1">Batal</button>
+              <button onClick={confirmDeleteVoucher} className="px-5 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 font-bold shadow-md transition flex-1">Ya, Hapus</button>
             </div>
           </div>
         </div>

@@ -257,7 +257,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-[#F6FCF9] font-sans text-gray-900">
       
       {/* NAVBAR */}
-      <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-sm transition-all duration-300">
+      <nav className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           
           <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition group">
@@ -363,7 +363,7 @@ const Dashboard = () => {
         </div>
 
         {/* CHART SECTION (RECHARTS IMPLEMENTATION) */}
-        <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-50 mb-8">
+        <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-50 mb-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
             <div>
               <h3 className="text-xl font-black text-gray-900">{t.trendTitle}</h3>
@@ -417,7 +417,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           
           {/* Recent Transactions */}
-          <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-gray-50">
+          <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-50">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-black text-gray-900">{t.recentTrans}</h3>
               <Link to="/transactions" className="text-green-600 font-bold text-sm hover:underline">{t.viewAll}</Link>
@@ -443,7 +443,7 @@ const Dashboard = () => {
           </div>
 
           {/* AI Recommendations */}
-          <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-gray-50">
+          <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-50">
             <h3 className="text-xl font-black text-gray-900 mb-6">{t.quickRecs}</h3>
             <div className="space-y-6">
               {dashboardData?.quick_recommendations && dashboardData.quick_recommendations.length > 0 ? (
@@ -479,50 +479,6 @@ const Dashboard = () => {
               )}
             </div>
           </div>
-        </div>
-
-        {/* BOTTOM SECTION */}
-        <div className="bg-[#FFB800] p-10 rounded-[3rem] shadow-xl text-white relative overflow-hidden">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-8 relative z-10">
-            <div className="flex-1 w-full">
-              <h3 className="text-2xl font-black mb-2">{t.rewardsProgram}</h3>
-              <p className="font-bold opacity-90 mb-6">{t.ptsAway}</p>
-              
-              <div className="w-full bg-white/30 h-4 rounded-full mb-2">
-                <div className="bg-white h-4 rounded-full" style={{ width: '85%' }}></div>
-              </div>
-              <div className="flex justify-between text-xs font-black">
-                <span>{dashboardData?.rewards?.points || '1,750'}</span>
-                <span>{t.nextTier}</span>
-              </div>
-            </div>
-            
-            <div className="text-center md:text-right">
-               <p className="text-xs font-black opacity-80 uppercase tracking-widest">{t.totalPoints}</p>
-               <h2 className="text-6xl font-black">{dashboardData?.rewards?.points || '1,750'}</h2>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-10 pt-8 border-t border-white/20 relative z-10">
-            <div className="text-center">
-              <p className="text-[10px] font-black opacity-70 uppercase mb-1">{t.pointEarned}</p>
-              <p className="font-black text-xl">{dashboardData?.rewards?.points || '1,750'}</p>
-            </div>
-            <div className="text-center border-l border-white/10">
-              <p className="text-[10px] font-black opacity-70 uppercase mb-1">{t.currentTier}</p>
-              <p className="font-black text-xl">{dashboardData?.rewards?.tier || 'Gold'}</p>
-            </div>
-            <div className="text-center border-l border-white/10">
-              <p className="text-[10px] font-black opacity-70 uppercase mb-1">{t.rewardsClaimed}</p>
-              <p className="font-black text-xl">{dashboardData?.rewards?.claimed || '12'}</p>
-            </div>
-            <div className="text-center border-l border-white/10">
-              <p className="text-[10px] font-black opacity-70 uppercase mb-1">{t.nextRewards}</p>
-              <p className="font-black text-xl">250 {t.pts}</p>
-            </div>
-          </div>
-
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full translate-x-20 -translate-y-20"></div>
         </div>
 
       </main>

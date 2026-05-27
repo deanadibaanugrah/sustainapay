@@ -55,12 +55,12 @@ const LandingPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#F6FCF9] to-[#E8F8F0] font-sans text-gray-900 relative overflow-x-hidden flex flex-col">
       
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-green-200 rounded-full mix-blend-multiply blur-[100px] opacity-40" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-emerald-200 rounded-full mix-blend-multiply blur-[100px] opacity-40" />
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-green-200 rounded-full mix-blend-multiply opacity-30" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-emerald-200 rounded-full mix-blend-multiply opacity-30" />
       </div>
 
       {/* NAVBAR */}
-      <nav className="relative z-20 flex justify-between items-center py-6 px-8 max-w-7xl mx-auto w-full backdrop-blur-md bg-white/30 border border-white/40 mt-4 rounded-3xl shadow-sm">
+      <nav className="relative z-20 flex justify-between items-center py-6 px-8 max-w-7xl mx-auto w-full bg-white/80 border border-white/40 mt-4 rounded-3xl shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-green-800 rounded-xl flex items-center justify-center text-white font-black text-[8px] shadow-md">LOGO</div>
           <span className="font-bold text-xl text-green-800 hidden sm:block">SustainaPay</span>
@@ -142,7 +142,7 @@ const LandingPage = () => {
             
             {/* TAMPILAN 1: TENTANG KAMI */}
             <div className={`absolute inset-0 transition-all duration-500 transform ${activeTab === 'about' ? 'opacity-100 translate-y-0 z-10' : 'opacity-0 translate-y-8 pointer-events-none -z-10'}`}>
-              <div className="bg-white/80 backdrop-blur-2xl p-8 sm:p-10 rounded-[2.5rem] shadow-xl border border-white h-full flex flex-col justify-center">
+              <div className="bg-white/90 p-8 sm:p-10 rounded-[2.5rem] shadow-xl border border-white h-full flex flex-col justify-center">
                 <h2 className="text-3xl font-extrabold text-gray-900 mb-6 flex items-center gap-3">
                   <span className="text-[#00A651]">SustainaPay.</span>
                 </h2>
@@ -157,7 +157,7 @@ const LandingPage = () => {
 
             {/* TAMPILAN 2: CARA KERJA (Dengan Accordion Interaktif Toggleable) */}
             <div className={`absolute inset-0 transition-all duration-500 transform ${activeTab === 'flow' ? 'opacity-100 translate-y-0 z-10' : 'opacity-0 translate-y-8 pointer-events-none -z-10'}`}>
-              <div className="bg-white/80 backdrop-blur-2xl p-8 rounded-[2.5rem] shadow-xl border border-white h-full flex flex-col">
+              <div className="bg-white/90 p-8 rounded-[2.5rem] shadow-xl border border-white h-full flex flex-col">
                 <div className="mb-6">
                   <h2 className="text-2xl font-extrabold text-gray-900 mb-1">{text.flowTitle}</h2>
                   <p className="text-xs text-[#00A651] font-bold bg-green-100/50 w-fit px-3 py-1 rounded-full animate-pulse">{text.flowSub}</p>

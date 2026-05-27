@@ -198,6 +198,12 @@ class TransactionController extends Controller
             // Potong saldo
             $user->decrement('wallet_balance', $request->amount);
             
+            // Hitung poin hadiah: setiap kelipatan Rp1000 mendapat 10 Poin
+            $earnedPoints = floor($request->amount / 1000) * 10;
+            if ($earnedPoints > 0) {
+                $user->increment('reward_points', $earnedPoints);
+            }
+            
             // Catat transaksi
             $transaction = Transaction::create([
                 'user_id' => $user->id,
