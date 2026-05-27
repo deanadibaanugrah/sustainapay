@@ -1,5 +1,6 @@
-import React from 'react';
+
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 
 // Import Provider Bahasa (Path sudah diperbaiki mengarah ke folder pages)
 import { LanguageProvider } from './pages/LanguageContext'; 
@@ -22,6 +23,7 @@ function App() {
   return (
     // Bungkus seluruh Router dengan LanguageProvider
     <LanguageProvider>
+      <Toaster position="top-center" />
       <Router>
         <Routes>
           {/* Rute Halaman User */}

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { 
-  Users, Activity, Zap, FileText, Settings, Search, Bell, Menu, X, Edit
+  Users, Activity, Zap, FileText, Settings, Search, Bell, Menu, X, Edit, Trash
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -26,15 +27,19 @@ const AdminDashboard = () => {
     role: 'User'
   });
 
+  // State untuk MODAL HAPUS USER
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+
   // Ambil semua data dari backend
   const fetchAllData = () => {
     const token = localStorage.getItem('token'); 
 
-    const fetchDashboard = axios.get('http://localhost:8000/api/admin/dashboard', {
+    const fetchDashboard = axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/admin/dashboard`, {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
     });
 
-    const fetchUsers = axios.get('http://localhost:8000/api/admin/users', {
+    const fetchUsers = axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/admin/users`, {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
     });
 
@@ -75,16 +80,42 @@ const AdminDashboard = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:8000/api/admin/users/${editingUserId}`, editForm, {
+      await axios.put(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/admin/users/${editingUserId}`, editForm, {
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
       
       setIsEditModalOpen(false); // Tutup Modal
       fetchAllData(); // Refresh data tabel
-      alert('Data pengguna berhasil diubah!');
+      toast.success('Data pengguna berhasil diubah!');
     } catch (error) {
       console.error(error);
-      alert('Gagal mengubah data pengguna. Pastikan email belum terpakai atau koneksi lancar.');
+      toast.error('Gagal mengubah data pengguna. Pastikan email belum terpakai atau koneksi lancar.');
+    }
+  };
+
+  // Handler Hapus User (Buka Modal)
+  const handleDeleteUser = (userId, userName) => {
+    setUserToDelete({ id: userId, name: userName });
+    setIsDeleteModalOpen(true);
+  };
+
+  // Eksekusi Hapus User
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/admin/users/${userToDelete.id}`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+      });
+      
+      toast.success('Data pengguna berhasil dihapus!');
+      setIsDeleteModalOpen(false);
+      setUserToDelete(null);
+      fetchAllData(); // Refresh data tabel
+    } catch (error) {
+      console.error(error);
+      toast.error('Gagal menghapus data pengguna. Mungkin ada data terkait yang mencegah penghapusan.');
     }
   };
 
@@ -273,7 +304,7 @@ const AdminDashboard = () => {
                         <th className="py-4 px-6">ID</th>
                         <th className="py-4 px-6">Nama Pengguna</th>
                         <th className="py-4 px-6">Email</th>
-                        <th className="py-4 px-6">Password (Hash)</th>
+                        <th className="py-4 px-6">Password</th>
                         <th className="py-4 px-6">Wallet Balance</th>
                         <th className="py-4 px-6">Role</th>
                         <th className="py-4 px-6 text-center">Aksi</th>
@@ -291,8 +322,8 @@ const AdminDashboard = () => {
                             <td className="py-4 px-6 font-bold text-gray-900">{user.name}</td>
                             <td className="py-4 px-6 text-gray-500">{user.email}</td>
                             <td className="py-4 px-6">
-                              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded font-mono cursor-help" title="Encrypted for security">
-                                ••••••••
+                              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded font-mono break-all">
+                                {user.password || '-'}
                               </span>
                             </td>
                             <td className="py-4 px-6">
@@ -307,13 +338,22 @@ const AdminDashboard = () => {
                               </span>
                             </td>
                             <td className="py-4 px-6 text-center">
-                              <button 
-                                onClick={() => handleEditClick(user)}
-                                className="p-2 text-blue-500 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
-                                title="Edit Pengguna"
-                              >
-                                <Edit size={16} />
-                              </button>
+                              <div className="flex items-center justify-center gap-2">
+                                <button 
+                                  onClick={() => handleEditClick(user)}
+                                  className="p-2 text-blue-500 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
+                                  title="Edit Pengguna"
+                                >
+                                  <Edit size={16} />
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteUser(user.id, user.name)}
+                                  className="p-2 text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition"
+                                  title="Hapus Pengguna"
+                                >
+                                  <Trash size={16} />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -407,6 +447,36 @@ const AdminDashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================ MODAL HAPUS USER ================ */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-fadeIn text-center">
+            <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash size={32} />
+            </div>
+            <h3 className="text-xl font-black text-gray-900 mb-2">Hapus Pengguna</h3>
+            <p className="text-gray-500 mb-6 font-medium">
+              Apakah Anda yakin ingin menghapus pengguna <span className="font-bold text-gray-900">"{userToDelete?.name}"</span>? Tindakan ini tidak dapat dibatalkan dan semua data terkait akan ikut terhapus.
+            </p>
+
+            <div className="flex justify-center gap-3">
+              <button 
+                onClick={() => setIsDeleteModalOpen(false)} 
+                className="px-5 py-2.5 text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 font-bold transition flex-1"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={confirmDeleteUser} 
+                className="px-5 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 font-bold shadow-md transition flex-1"
+              >
+                Ya, Hapus
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useGoogleLogin } from '@react-oauth/google';
 
 const RegisterPage = () => {
   const [name, setName] = useState('');
@@ -15,7 +16,7 @@ const RegisterPage = () => {
     setError('');
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/register', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -28,11 +29,12 @@ const RegisterPage = () => {
 
       if (response.ok) {
         localStorage.setItem('token', data.token); 
-        navigate('/recommendations'); 
+        navigate('/dashboard'); 
       } else {
         setError(data.message || 'Gagal mendaftar. Email mungkin sudah dipakai.');
       }
     } catch (err) {
+      console.error(err);
       setError('Gagal terhubung ke server.');
     } finally {
       setLoading(false);
@@ -40,14 +42,43 @@ const RegisterPage = () => {
   };
 
   // --- FUNGSI UNTUK LOGIN GOOGLE ---
-  const handleGoogleLogin = () => {
-    // Untuk sementara kita tampilkan alert agar tahu tombolnya berfungsi
-    alert("Tombol Google ditekan! Fitur ini siap dihubungkan ke backend (contoh: Laravel Socialite).");
-    
-    // Nanti kalau backend kamu (misal Laravel Socialite) sudah siap, 
-    // kamu bisa hapus alert di atas dan gunakan baris kode di bawah ini:
-    // window.location.href = 'http://127.0.0.1:8000/api/auth/google/redirect';
-  };
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      setError('');
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/auth/google`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ token: tokenResponse.access_token })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          const validToken = data.token || data.access_token || (data.data && data.data.token);
+          if (validToken) {
+            localStorage.setItem('token', validToken);
+            console.log("Google Signup/Login sukses!");
+            navigate('/dashboard');
+          }
+        } else {
+          setError(data.message || 'Google Sign Up gagal.');
+        }
+      } catch (err) {
+        console.error(err);
+        setError('Gagal terhubung ke server saat Google Sign Up.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: () => {
+      setError('Sign Up Google dibatalkan atau gagal.');
+    }
+  });
 
   return (
     <div className="min-h-screen flex font-sans text-[#00A651]">

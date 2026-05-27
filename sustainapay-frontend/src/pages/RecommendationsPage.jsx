@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from "./LanguageContext";
 
@@ -19,13 +19,7 @@ const RecommendationsPage = () => {
   const { lang } = useLanguage() || { lang: 'id' };
   const t = translations[lang] || translations['id'];
 
-  const [navUser, setNavUser] = useState({ name: '', avatar: null, initials: 'U' });
-  const [aiHistory, setAiHistory] = useState([]);
-  const [loadingAi, setLoadingAi] = useState(true);
-  const [aiError, setAiError] = useState('');
-  const navigate = useNavigate();
-
-  useEffect(() => {
+  const [navUser] = useState(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
@@ -34,10 +28,18 @@ const RecommendationsPage = () => {
         const words = fullName.trim().split(' ');
         const initials = words.length >= 2 ? (words[0][0] + words[1][0]).toUpperCase() : fullName.substring(0, 2).toUpperCase();
         const userAvatar = localStorage.getItem('user_avatar') || parsedUser.profile_picture || parsedUser.avatar || null; 
-        setNavUser({ name: fullName, avatar: userAvatar, initials });
-      } catch (error) { console.error("Gagal parse data user:", error); }
+        return { name: fullName, avatar: userAvatar, initials };
+      } catch (error) { 
+        console.error("Gagal parse data user:", error); 
+        return { name: '', avatar: null, initials: 'U' };
+      }
     }
-  }, []);
+    return { name: '', avatar: null, initials: 'U' };
+  });
+  const [aiHistory, setAiHistory] = useState([]);
+  const [loadingAi, setLoadingAi] = useState(true);
+  const [aiError, setAiError] = useState('');
+  const navigate = useNavigate();
 
   // FETCH KE URL AI RECOMMENDATIONS
   useEffect(() => {
@@ -46,7 +48,7 @@ const RecommendationsPage = () => {
       if (!token) { navigate('/login'); return; }
 
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/ai/recommendations', { // <-- INI SUDAH BENAR SEKARANG
+        const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/ai/recommendations`, { 
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
         });
@@ -61,6 +63,7 @@ const RecommendationsPage = () => {
           setAiHistory([]);
         }
       } catch (err) {
+        console.error(err);
         setAiError(t.serverFail);
         setAiHistory([]);
       } finally {
@@ -144,17 +147,16 @@ const RecommendationsPage = () => {
                     <div className="text-right">
                       <span className="text-xs font-bold text-gray-400 block mb-1 uppercase">{t.totalEmissions}</span>
                       <span className="inline-block bg-[#E6FAF1] text-green-800 font-black px-3 py-1 rounded-full text-sm">
-                        {item.total_emisi || "0.00"} kg
+                        {item.total_emisi ? parseFloat(item.total_emisi).toFixed(2) : "0.00"} kg
                       </span>
                     </div>
                   </div>
                   
                   {/* Teks Rekomendasi AI */}
                   <div className="z-10 bg-gray-50/50 p-4 rounded-2xl border border-gray-50 h-full">
-                     <p className="text-gray-700 font-medium text-sm leading-relaxed whitespace-pre-wrap">
-                       {/* MEMBACA DARI KOLOM ai_analysis */}
-                       {item.ai_analysis || "Tidak ada detail analisis yang tersimpan."}
-                     </p>
+                      <p className="text-gray-700 font-medium text-sm leading-relaxed whitespace-pre-wrap">
+                        {item.ai_analysis || "Tidak ada detail analisis yang tersimpan."}
+                      </p>
                   </div>
                 </div>
               ))}

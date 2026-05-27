@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useLanguage } from "./LanguageContext";
+import { useGoogleLogin } from '@react-oauth/google';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -15,7 +15,7 @@ const LoginPage = () => {
     setError('');
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/login', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -35,7 +35,7 @@ const LoginPage = () => {
             localStorage.setItem('token', validToken);
             console.log("Login sukses! Token disimpan:", validToken);
             // Arahkan ke halaman rekomendasi setelah berhasil login
-            navigate('/recommendations');
+            navigate('/dashboard');
         } else {
             setError('Login berhasil, tapi format token dari backend tidak ditemukan.');
             console.error("Cek response backend kamu:", data);
@@ -44,11 +44,50 @@ const LoginPage = () => {
         setError(data.message || 'Login gagal. Cek email & password kamu.');
       }
     } catch (err) {
+      console.error(err);
       setError('Gagal terhubung ke server. Pastikan backend Laravel menyala.');
     } finally {
       setLoading(false);
     }
   };
+
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      setError('');
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/auth/google`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ token: tokenResponse.access_token })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          const validToken = data.token || data.access_token || (data.data && data.data.token);
+          if (validToken) {
+            localStorage.setItem('token', validToken);
+            console.log("Google Login sukses!");
+            navigate('/dashboard');
+          }
+        } else {
+          setError(data.message || 'Google Login gagal.');
+        }
+      } catch (err) {
+        console.error(err);
+        setError('Gagal terhubung ke server saat Google Login.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: () => {
+      setError('Login Google dibatalkan atau gagal.');
+    }
+  });
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8FAF9] p-6">
@@ -84,6 +123,21 @@ const LoginPage = () => {
             {loading ? 'Menghubungkan...' : 'Sign In'}
           </button>
         </form>
+
+        <div className="my-6 flex items-center justify-center">
+          <span className="w-full border-t border-gray-200"></span>
+          <span className="px-3 text-sm text-gray-400 bg-white">OR</span>
+          <span className="w-full border-t border-gray-200"></span>
+        </div>
+
+        <button 
+          onClick={() => loginWithGoogle()}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-700 py-3 rounded-2xl font-bold shadow-sm hover:bg-gray-50 disabled:opacity-70 disabled:cursor-not-allowed transition"
+        >
+          <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+          Sign in with Google
+        </button>
 
         <p className="mt-6 text-sm text-gray-500">
           Belum punya akun? <Link to="/register" className="text-green-600 font-bold">Buat Akun Baru</Link>

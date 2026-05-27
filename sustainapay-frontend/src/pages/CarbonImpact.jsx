@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from "./LanguageContext";
 
@@ -28,6 +28,9 @@ const translations = {
     offsetProgress: "Offset Progress",
     breakdownTitle: "Emissions Breakdown",
     transportation: "Transportation",
+    motorcycle: "Motorcycle",
+    car: "Car",
+    publicTransport: "Public Transport",
     insightsTitle: "Personalized Insights",
     askAI: "Ask AI",
     aiAnalysisTitle: "Sustaina-AI Analysis",
@@ -81,6 +84,9 @@ const translations = {
     offsetProgress: "Progres Penebusan",
     breakdownTitle: "Rincian Emisi",
     transportation: "Transportasi",
+    motorcycle: "Sepeda Motor",
+    car: "Mobil",
+    publicTransport: "Transportasi Umum",
     insightsTitle: "Wawasan Personal",
     askAI: "Tanya AI",
     aiAnalysisTitle: "Analisis Sustaina-AI",
@@ -121,56 +127,77 @@ const CarbonImpact = () => {
   const [showAITips, setShowAITips] = useState(false); 
 
   // --- STATE UNTUK AVATAR NAVBAR ---
-  const [navUser, setNavUser] = useState({ avatar: '', initials: 'U' });
-
-  // --- MENGAMBIL DATA AVATAR DARI LOCALSTORAGE ---
-  useEffect(() => {
+  const [navUser] = useState(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      
-      const getInitials = (name) => {
-        if (!name) return 'U';
-        const words = name.split(' ');
-        if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
-        return name.substring(0, 2).toUpperCase();
-      };
-
-      const initials = getInitials(parsedUser.name);
-      // Cek apakah ada foto baru di localStorage (user_avatar), jika tidak pakai bawaan DB, jika tidak pakai inisial
-      const userAvatar = localStorage.getItem('user_avatar') 
-                        || parsedUser.avatar 
-                        || `https://ui-avatars.com/api/?name=${initials}&background=00A651&color=fff`;
-      
-      setNavUser({ avatar: userAvatar, initials });
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        const getInitials = (name) => {
+          if (!name) return 'U';
+          const words = name.split(' ');
+          if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+          return name.substring(0, 2).toUpperCase();
+        };
+        const initials = getInitials(parsedUser.name);
+        const userAvatar = localStorage.getItem('user_avatar') || parsedUser.avatar || `https://ui-avatars.com/api/?name=${initials}&background=00A651&color=fff`;
+        return { name: parsedUser.name, avatar: userAvatar, initials: initials };
+      } catch (err) {
+        console.error(err);
+        return { name: '', avatar: null, initials: 'U' };
+      }
     }
-  }, []);
+    return { avatar: '', initials: 'U' };
+  });
 
-  // Data dummy dinamis berdasarkan rentang waktu (Hanya Transportasi)
-  const dataMap = {
+  const defaultDataMap = {
     Month: {
-      total: '103',
-      unit: 'kg',
-      avg: '103 kg',
-      trees: '5',
-      offset: 30,
+      total: '0', unit: 'kg', avg: '0 kg', trees: '0', offset: 0,
       categories: [
-        { name: 'Transportation', icon: '🚗', value: 100, color: 'bg-blue-500', amount: '103 kg' },
+        { name: 'Motorcycle', icon: '🏍️', value: 0, color: 'bg-green-500', amount: '0 kg' },
+        { name: 'Car', icon: '🚗', value: 0, color: 'bg-blue-500', amount: '0 kg' },
+        { name: 'Public Transport', icon: '🚆', value: 0, color: 'bg-purple-500', amount: '0 kg' }
       ]
     },
     Year: {
-      total: '1,245',
-      unit: 'kg',
-      avg: '103 kg',
-      trees: '52',
-      offset: 45,
+      total: '0', unit: 'kg', avg: '0 kg', trees: '0', offset: 0,
       categories: [
-        { name: 'Transportation', icon: '🚗', value: 100, color: 'bg-blue-500', amount: '1,245 kg' },
+        { name: 'Motorcycle', icon: '🏍️', value: 0, color: 'bg-green-500', amount: '0 kg' },
+        { name: 'Car', icon: '🚗', value: 0, color: 'bg-blue-500', amount: '0 kg' },
+        { name: 'Public Transport', icon: '🚆', value: 0, color: 'bg-purple-500', amount: '0 kg' }
       ]
     }
   };
 
-  const currentData = dataMap[timeFrame];
+  const [backendData, setBackendData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCarbonImpact = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/carbon-impact`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const result = await res.json();
+        if (res.ok) setBackendData(result.data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCarbonImpact();
+  }, []);
+
+  const currentData = backendData ? backendData[timeFrame] : defaultDataMap[timeFrame];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F6FCF9]">
+        <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F6FCF9] font-sans text-gray-900">
@@ -330,7 +357,11 @@ const CarbonImpact = () => {
                     <div className="flex items-center gap-3">
                       <span className="text-xl">{cat.icon}</span>
                       <span className="font-bold text-gray-800 text-sm">
-                        {cat.name === 'Transportation' ? t.transportation : cat.name}
+                        {cat.name === 'Transportation' ? t.transportation : 
+                         cat.name === 'Motorcycle' ? t.motorcycle :
+                         cat.name === 'Car' ? t.car :
+                         cat.name === 'Public Transport' ? t.publicTransport :
+                         cat.name}
                       </span>
                     </div>
                     <div className="text-right">

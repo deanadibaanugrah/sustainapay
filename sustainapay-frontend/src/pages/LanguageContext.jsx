@@ -1,20 +1,17 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useContext } from 'react';
 
 // 1. Buat Context
 const LanguageContext = createContext();
 
 // 2. Buat Provider untuk membungkus aplikasi
 export const LanguageProvider = ({ children }) => {
-  const [lang, setLang] = useState('id'); // Default bahasa awal selalu huruf kecil
-
-  // Cek localStorage saat aplikasi pertama kali dimuat
-  useEffect(() => {
+  const [lang, setLang] = useState(() => {
     const savedLang = localStorage.getItem('sustainapay_lang');
     if (savedLang) {
-      // MASTER FIX: Paksa selalu jadi huruf kecil ('id' atau 'en') biar halaman lain gak crash!
-      setLang(String(savedLang).toLowerCase());
+      return String(savedLang).toLowerCase();
     }
-  }, []);
+    return 'id';
+  });
 
   // Fungsi untuk mengubah bahasa dan menyimpannya
   const toggleLanguage = (selectedLang) => {
@@ -32,6 +29,7 @@ export const LanguageProvider = ({ children }) => {
 };
 
 // 3. Buat custom hook biar gampang dipanggil di halaman lain
+// eslint-disable-next-line react-refresh/only-export-components
 export const useLanguage = () => {
   return useContext(LanguageContext);
 };

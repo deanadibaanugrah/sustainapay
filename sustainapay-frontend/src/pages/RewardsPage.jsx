@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from "./LanguageContext";
 
@@ -161,12 +161,32 @@ const RewardsPage = () => {
   const t = translations[lang];
 
   const [activeTab, setActiveTab] = useState('Redeem Rewards');
-  const [userPoints, setUserPoints] = useState(2450);
+  const [userPoints, setUserPoints] = useState(0);
   const [myVouchers, setMyVouchers] = useState([]);
   const [toastMessage, setToastMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   
-  // --- STATE UNTUK AVATAR NAVBAR ---
-  const [navUser, setNavUser] = useState({ avatar: '', initials: 'U' });
+  const [navUser] = useState(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        const getInitials = (name) => {
+          if (!name) return 'U';
+          const words = name.split(' ');
+          if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+          return name.substring(0, 2).toUpperCase();
+        };
+        const initials = getInitials(parsedUser.name);
+        const userAvatar = localStorage.getItem('user_avatar') || parsedUser.avatar || `https://ui-avatars.com/api/?name=${initials}&background=00A651&color=fff`;
+        return { avatar: userAvatar, initials };
+      } catch (err) {
+        console.error(err);
+        return { avatar: '', initials: 'U' };
+      }
+    }
+    return { avatar: '', initials: 'U' };
+  });
 
   // Mapping label tab sesuai bahasa
   const tabLabels = {
@@ -175,43 +195,82 @@ const RewardsPage = () => {
     'Impact Donations': t.tabDonations
   };
 
-  // --- MENGAMBIL DATA AVATAR DARI LOCALSTORAGE ---
+  // Ambil data poin & riwayat voucher dari backend
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      
-      const getInitials = (name) => {
-        if (!name) return 'U';
-        const words = name.split(' ');
-        if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
-        return name.substring(0, 2).toUpperCase();
-      };
+    const fetchRewardsData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
 
-      const initials = getInitials(parsedUser.name);
-      const userAvatar = localStorage.getItem('user_avatar') 
-                        || parsedUser.avatar 
-                        || `https://ui-avatars.com/api/?name=${initials}&background=00A651&color=fff`;
-      
-      setNavUser({ avatar: userAvatar, initials });
-    }
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/rewards`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const result = await res.json();
+        
+        if (res.ok && result.success) {
+          setUserPoints(result.data.points || 0);
+          setMyVouchers(result.data.vouchers || []);
+        }
+      } catch (err) {
+        console.error("Error fetching rewards:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchRewardsData();
   }, []);
 
-  // Fungsi untuk redeem reward/donation
-  const handleRedeem = (item) => {
+  // Fungsi untuk redeem reward/donation ke backend
+  const handleRedeem = async (item) => {
     if (userPoints >= item.cost) {
-      setUserPoints(prev => prev - item.cost);
-      setMyVouchers(prev => [...prev, { ...item, redeemedDate: new Date().toLocaleDateString() }]);
-      
-      // Tampilkan toast berhasil
-      setToastMessage(`${t.toastSuccess} ${item.title}!`);
-      setTimeout(() => setToastMessage(''), 3000);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/rewards/redeem`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title: item.title,
+            provider: item.provider,
+            icon: item.icon,
+            type: item.type,
+            cost: item.cost
+          })
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok && result.success) {
+          setUserPoints(result.data.points);
+          setMyVouchers(prev => [result.data.voucher, ...prev]);
+          
+          setToastMessage(`${t.toastSuccess} ${item.title}!`);
+          setTimeout(() => setToastMessage(''), 3000);
+        } else {
+          setToastMessage(result.message || t.toastFail);
+          setTimeout(() => setToastMessage(''), 3000);
+        }
+      } catch (err) {
+        console.error("Error redeeming:", err);
+        setToastMessage("Server error!");
+        setTimeout(() => setToastMessage(''), 3000);
+      }
     } else {
-      // Tampilkan toast gagal
       setToastMessage(t.toastFail);
       setTimeout(() => setToastMessage(''), 3000);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F6FCF9]">
+        <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F6FCF9] font-sans text-gray-900 relative">
@@ -419,7 +478,7 @@ const RewardsPage = () => {
                     <div className="p-5 bg-white/5 flex-grow flex flex-col justify-center items-center">
                       <p className="text-xs text-gray-400 mb-2">{t.scanToUse}</p>
                       <div className="w-full h-16 bg-white/20 rounded-lg flex items-center justify-center tracking-[0.5em] font-mono font-bold text-lg opacity-80">
-                        {Math.random().toString(36).substring(2, 10).toUpperCase()}
+                        {item.voucherCode}
                       </div>
                       <p className="text-[10px] text-gray-500 mt-4">{t.redeemedOn} {item.redeemedDate}</p>
                     </div>

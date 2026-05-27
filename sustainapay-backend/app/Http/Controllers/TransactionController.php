@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Transaction;
 use App\Models\CarbonRecord;
 use App\Models\User;
-use App\Models\AiRecommendation; // <-- Memanggil tabel AI
+use App\Models\AiRecommendation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -169,26 +169,36 @@ class TransactionController extends Controller
 
     public function processPayment(Request $request)
     {
-        // 1. Validasi diperbarui untuk menerima data AI dari frontend React
+        // 1. Validasi diperbarui untuk PIN, AI, dan Karbon
         $request->validate([
             'amount' => 'required|numeric',
             'transaction_id' => 'nullable',
             'category' => 'required|string', 
             'description' => 'nullable|string',
-            'ai_analysis' => 'nullable|string', // <-- Teks dari Gemini
-            'total_emisi' => 'nullable|numeric' // <-- Angka emisi karbon
+            'ai_analysis' => 'nullable|string', 
+            'total_emisi' => 'nullable|numeric',
+            'pin' => 'required|string', // <-- Validasi PIN
+            'distance_km' => 'nullable|numeric', // <-- Jarak perjalanan
+            'emission_factor_id' => 'nullable|exists:emission_factors,id' // <-- ID kendaraan
         ]);
 
         /** @var \App\Models\User $user */
         $user = Auth::user();
         
+        // 2. Cek PIN statis '123456'
+        if ($request->pin !== '123456') {
+            return response()->json(['message' => 'PIN SustainaPay yang Anda masukkan salah!'], 401);
+        }
+
         if ($user->wallet_balance < $request->amount) {
             return response()->json(['message' => 'Saldo tidak cukup!'], 400);
         }
 
         return DB::transaction(function () use ($user, $request) {
+            // Potong saldo
             $user->decrement('wallet_balance', $request->amount);
             
+            // Catat transaksi
             $transaction = Transaction::create([
                 'user_id' => $user->id,
                 'transaction_code' => 'PAY-' . strtoupper(Str::random(8)),
@@ -198,20 +208,46 @@ class TransactionController extends Controller
                 'description' => $request->description ?? 'Pembayaran Perjalanan Mandiri / QR'
             ]);
 
-            // 2. Simpan Saran AI jika dikirim oleh React saat pembayaran
-            if ($request->filled('ai_analysis')) {
-                AiRecommendation::create([
+            // 3. Simpan Saran AI — panggil Gemini langsung dari backend
+            $aiText = $request->ai_analysis ?? null;
+            $emisi = $request->total_emisi ?? 0;
+            
+            // Jika teks AI yang dikirim frontend adalah fallback generik, panggil Gemini lagi
+            if (!$aiText || str_contains($aiText, 'Pertimbangkan untuk mencoba carpooling atau transportasi publik lain kali') || str_contains($aiText, 'Pertimbangkan eco-driving')) {
+                $aiText = AiController::callOpenAI(
+                    $request->category ?? 'Transportasi',
+                    $request->description ?? 'Perjalanan',
+                    $request->distance_km ?? 10,
+                    $emisi
+                );
+            }
+
+            AiRecommendation::create([
+                'user_id' => $user->id,
+                'transaction_id' => $transaction->id,
+                'total_emisi' => $emisi,
+                'ai_analysis' => $aiText,
+            ]);
+
+            // 4. Simpan Riwayat Karbon & Tambah Poin Hadiah
+            if ($request->filled('distance_km') && $request->filled('emission_factor_id')) {
+                CarbonRecord::create([
                     'user_id' => $user->id,
                     'transaction_id' => $transaction->id,
-                    'total_emisi' => $request->total_emisi ?? 0,
-                    'ai_analysis' => $request->ai_analysis,
+                    'emission_factor_id' => $request->emission_factor_id,
+                    'distance_km' => $request->distance_km,
+                    'calculated_carbon_kg' => $request->total_emisi ?? 0,
                 ]);
+
+                // Tambahkan 10 Eco Points untuk setiap transaksi yang tercatat karbonnya
+                $user->increment('eco_points', 10);
             }
 
             return response()->json([
                 'status' => 'Success',
                 'message' => 'Pembayaran berhasil dikonfirmasi',
-                'transaction_id' => $transaction->id
+                'transaction_id' => $transaction->id,
+                'ai_text' => $aiText
             ]);
         });
     }
@@ -227,6 +263,7 @@ class TransactionController extends Controller
             'status' => 'Success',
             'user' => $user->name,
             'wallet_balance' => $user->wallet_balance,
+            'eco_points' => $user->eco_points ?? 0, // <-- Mengirimkan poin ke Dasbor
             'total_carbon_kg' => number_format($totalCarbon, 2),
             'total_distance_km' => $totalDistance
         ]);

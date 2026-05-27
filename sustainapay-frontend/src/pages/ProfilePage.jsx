@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from "./LanguageContext";
+import { toast } from 'react-hot-toast';
 
 // --- KAMUS TERJEMAHAN UNTUK PROFILE PAGE ---
 const translations = {
@@ -78,9 +79,11 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   
-  // 1. Ambil state lang dari Context
-  const { lang } = useLanguage(); 
-  const t = translations[lang];
+  // 1. Ambil state bahasa dari Context secara aman
+  const contextData = useLanguage() || {};
+  const rawLang = contextData.language || contextData.lang || 'id';
+  const safeLang = String(rawLang).toLowerCase() === 'en' ? 'en' : 'id';
+  const t = translations[safeLang];
 
   // State utama untuk menampilkan data user
   const [user, setUser] = useState({
@@ -96,10 +99,10 @@ const ProfilePage = () => {
 
   // State untuk mode Edit
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', location: '', avatar: '' });
+  const [editForm, setEditForm] = useState({ name: '', email: '', location: '', avatar: '' });
   const [isLocating, setIsLocating] = useState(false); 
 
-  // Di sinilah useEffect dipanggil! Ini otomatis jalan pas buka halaman Profile
+  // Mengambil data user dari Backend saat halaman pertama kali dimuat
   useEffect(() => {
     const token = localStorage.getItem('token');
     
@@ -108,8 +111,7 @@ const ProfilePage = () => {
       return;
     }
 
-    // Ambil data terbaru dari Backend (Laravel)
-    fetch('http://127.0.0.1:8000/api/user', {
+    fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/user`, {
       headers: { 
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json'
@@ -117,8 +119,9 @@ const ProfilePage = () => {
     })
     .then(res => res.json())
     .then(data => {
-      // Simpan data asli dari backend ke localstorage biar aman
-      localStorage.setItem('user', JSON.stringify(data));
+      // Data yang diambil dari DB bisa dibungkus 'user' atau ditaruh langsung di 'data'
+      const userData = data.user || data; 
+      localStorage.setItem('user', JSON.stringify(userData));
 
       const getInitials = (name) => {
         if (!name) return 'U';
@@ -127,36 +130,35 @@ const ProfilePage = () => {
         return name.substring(0, 2).toUpperCase();
       };
 
-      const dateString = data.created_at 
-        ? new Date(data.created_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { month: 'long', year: 'numeric' })
-        : new Date().toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { month: 'long', year: 'numeric' });
+      const dateString = userData.created_at 
+        ? new Date(userData.created_at).toLocaleDateString(safeLang === 'id' ? 'id-ID' : 'en-US', { month: 'long', year: 'numeric' })
+        : new Date().toLocaleDateString(safeLang === 'id' ? 'id-ID' : 'en-US', { month: 'long', year: 'numeric' });
 
-      // Update Tampilan UI sesuai database
       setUser({
-        name: data.name,
-        email: data.email,
-        location: localStorage.getItem('user_location') || '', // Pake localstorage sementara kalo DB belum ada kolom location
+        name: userData.name || 'User',
+        email: userData.email || '',
+        location: userData.location || localStorage.getItem('user_location') || '', 
         joinDate: dateString,
-        avatar: localStorage.getItem('user_avatar') || `https://ui-avatars.com/api/?name=${getInitials(data.name)}&background=00A651&color=fff&size=128`,
-        points: 2450, 
-        carbonSaved: '1,245 kg',
-        impactRank: 'Top 15%',
+        avatar: userData.avatar || localStorage.getItem('user_avatar') || `https://ui-avatars.com/api/?name=${getInitials(userData.name)}&background=00A651&color=fff&size=128`,
+        points: data.points ?? 0, 
+        carbonSaved: `${data.carbonSaved ?? 0} kg`,
+        impactRank: data.impactRank ?? 'Top 50%',
       });
     })
     .catch(err => {
       console.error("Gagal mengambil data user:", err);
-      // Kalau gagal fetch API, tendang balik ke login biar aman
       if(err.message && err.message.includes('401')) {
           localStorage.removeItem('token');
           navigate('/login');
       }
     });
 
-  }, [navigate, lang]); // Tambahkan lang agar format tanggal direfresh saat ganti bahasa
+  }, [navigate, safeLang]);
 
   const handleEditClick = () => {
     setEditForm({
       name: user.name === 'Loading...' ? '' : user.name,
+      email: user.email === 'Loading...' ? '' : user.email,
       location: user.location,
       avatar: user.avatar
     });
@@ -167,9 +169,9 @@ const ProfilePage = () => {
     const token = localStorage.getItem('token');
 
     try {
-      // 1. Kirim data ke Laravel Backend agar tersimpan di Database
-      const response = await fetch('http://127.0.0.1:8000/api/user/update', {
-        method: 'PUT',
+      // Mengubah method jadi POST sesuai dengan route api.php milikmu
+      const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/user/update`, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -177,31 +179,31 @@ const ProfilePage = () => {
         },
         body: JSON.stringify({
           name: editForm.name,
+          email: editForm.email,
           location: editForm.location,
           avatar: editForm.avatar
         })
       });
 
       if (response.ok) {
-        // 2. Jika sukses, Update State User secara langsung agar UI berubah
         setUser(prev => ({
           ...prev,
           name: editForm.name,
+          email: editForm.email,
           location: editForm.location,
           avatar: editForm.avatar
         }));
 
-        // Simpan manual location dan avatar di frontend kalau DB belum punya kolomnya
         localStorage.setItem('user_location', editForm.location);
         localStorage.setItem('user_avatar', editForm.avatar);
 
         setIsEditing(false);
       } else {
-        alert(t.alertSaveFail);
+        toast.error(t.alertSaveFail);
       }
     } catch (err) {
       console.error("Error update profile:", err);
-      alert(t.alertNetError);
+      toast.error(t.alertNetError);
     }
   };
 
@@ -218,7 +220,7 @@ const ProfilePage = () => {
 
   const handleGetLocation = () => {
     if (!("geolocation" in navigator)) {
-      alert(t.alertNoGps);
+      toast.error(t.alertNoGps);
       return;
     }
 
@@ -235,13 +237,15 @@ const ProfilePage = () => {
           
           setEditForm(prev => ({ ...prev, location: `${city}, ${country}` }));
         } catch (error) {
+          console.error(error);
           setEditForm(prev => ({ ...prev, location: `Lat: ${latitude.toFixed(2)}, Lon: ${longitude.toFixed(2)}` }));
         } finally {
           setIsLocating(false);
         }
       },
       (error) => {
-        alert(t.alertGpsFail);
+        console.error(error);
+        toast.error(t.alertGpsFail);
         setIsLocating(false);
       }
     );
@@ -302,6 +306,15 @@ const ProfilePage = () => {
                 />
               </div>
               <div>
+                <label className="text-xs font-bold text-gray-500 mb-1 block">Email</label>
+                <input 
+                  type="email" 
+                  value={editForm.email} 
+                  onChange={(e) => setEditForm({...editForm, email: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-green-500 font-medium"
+                />
+              </div>
+              <div>
                 <label className="text-xs font-bold text-gray-500 mb-1 block">{t.location}</label>
                 <div className="flex gap-2">
                   <input 
@@ -342,11 +355,10 @@ const ProfilePage = () => {
         </div>
       )}
 
-      {/* NAVBAR - GAYA LANDING PAGE (MODERN & FLOATING) */}
+      {/* NAVBAR */}
       <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-sm transition-all duration-300">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           
-          {/* KIRI: Logo & Nama Brand */}
           <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition group">
             <div className="w-10 h-10 bg-gradient-to-br from-[#00A651] to-green-700 flex items-center justify-center rounded-xl shadow-lg shadow-green-200 group-hover:scale-105 transition-transform">
               <span className="text-white font-black text-[10px] tracking-widest">LOGO</span>
@@ -356,7 +368,6 @@ const ProfilePage = () => {
             </span>
           </Link>
           
-          {/* TENGAH: Menu Navigasi (Pill Style) */}
           <div className="hidden lg:flex items-center gap-1 bg-gray-50/80 border border-gray-100 p-1.5 rounded-full shadow-inner">
             <Link to="/" className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all">
               {t.home}
@@ -376,13 +387,11 @@ const ProfilePage = () => {
             <Link to="/rewards" className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all">
               {t.rewards}
             </Link>
-            {/* Navigasi Aktif (Profile) */}
             <Link to="/profile" className="px-5 py-2 text-sm font-black text-white bg-[#00A651] shadow-md shadow-green-200 rounded-full transition-all">
               {t.profile}
             </Link>
           </div>
 
-          {/* KANAN: Notifikasi & Profil (Interaktif) */}
           <div className="flex items-center gap-4">
             <button className="relative w-10 h-10 bg-white border border-gray-100 text-gray-600 rounded-full flex items-center justify-center shadow-sm hover:bg-green-50 hover:text-green-600 transition-all hover:scale-105">
               🔔
@@ -399,7 +408,6 @@ const ProfilePage = () => {
 
         </div>
       </nav>
-      {/* AKHIR NAVBAR */}
 
       {/* CONTENT AREA */}
       <main className="max-w-4xl mx-auto px-8 py-12">

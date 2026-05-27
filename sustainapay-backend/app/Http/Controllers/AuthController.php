@@ -24,7 +24,7 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => $request->password, // Disimpan plain text
             'wallet_balance' => 0 // Saldo awal 0
         ]);
 
@@ -34,17 +34,20 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Login User
-     */
     public function login(Request $request)
     {
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            return response()->json(['message' => 'Email atau Password salah'], 401);
-        }
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required'
+        ]);
 
         /** @var \App\Models\User $user */
-        $user = User::where('email', $request->email)->firstOrFail();
+        $user = User::where('email', $request->email)->first();
+
+        // Check password manually since we are using plain text
+        if (!$user || $user->password !== $request->password) {
+            return response()->json(['message' => 'Email atau Password salah'], 401);
+        }
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -55,16 +58,133 @@ class AuthController extends Controller
     }
 
     /**
+     * Update Profil User (Nama, Lokasi, Avatar)
+     */
+    public function update(Request $request)
+    {
+        // 1. Tangkap user spesifik dengan sanctum
+        $user = auth('sanctum')->user();
+
+        // 2. Jika token tidak ada / user tidak ditemukan, tolak
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak! Token tidak valid.'
+            ], 401);
+        }
+
+        // 3. Validasi untuk nama dan lokasi saja
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'location' => 'nullable|string|max:255',
+        ]);
+
+        // 4. Update data nama dan lokasi
+        $user->name = $request->name;
+        $user->location = $request->location;
+
+        // 5. Tangkap avatar Base64 dari React
+        if ($request->has('avatar')) {
+            if (is_string($request->avatar)) {
+                $user->avatar = $request->avatar;
+            }
+        }
+
+        // 6. Simpan ke database
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil berhasil diperbarui!',
+            'user' => $user
+        ], 200);
+    }
+
+    /**
      * Logout & Hapus Token
      */
-    public function logout()
+    public function logout(Request $request)
     {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
+        // Menggunakan request()->user() agar Sanctum mendeteksi token secara akurat
+        $user = $request->user();
         
-        // Menghapus token agar tidak bisa digunakan lagi
-        $user->tokens()->delete();
+        if ($user) {
+            // Menghapus token yang sedang digunakan saat ini saja
+            $user->currentAccessToken()->delete();
+            
+            // Note: Jika ingin menghapus SEMUA token (logout dari semua perangkat), gunakan:
+            // $user->tokens()->delete();
+        }
 
         return response()->json(['message' => 'Berhasil Logout']);
+    }
+
+    /**
+     * Login / Register with Google
+     */
+    public function googleLogin(Request $request)
+    {
+        $request->validate([
+            'token' => 'required|string'
+        ]);
+
+        try {
+            // Frontend sends an OAuth access_token via useGoogleLogin(),
+            // so we verify it by calling Google's userinfo endpoint.
+            // withoutVerifying() bypasses SSL cert check for local dev on Windows.
+            $response = \Illuminate\Support\Facades\Http::withoutVerifying()
+                ->get('https://www.googleapis.com/oauth2/v3/userinfo', [
+                    'access_token' => $request->token
+                ]);
+
+            if ($response->failed()) {
+                return response()->json(['message' => 'Invalid Google token'], 401);
+            }
+
+            $payload = $response->json();
+            $googleId = $payload['sub'];
+            $email = $payload['email'] ?? null;
+            $name = $payload['name'] ?? 'Google User';
+            $avatar = $payload['picture'] ?? null;
+
+            if (!$email) {
+                return response()->json(['message' => 'Email not provided by Google'], 400);
+            }
+
+            /** @var \App\Models\User $user */
+            $user = User::where('email', $email)->first();
+
+            if ($user) {
+                // Update google_id if not set
+                if (!$user->google_id) {
+                    $user->google_id = $googleId;
+                    if (!$user->avatar && $avatar) {
+                        $user->avatar = $avatar;
+                    }
+                    $user->save();
+                }
+            } else {
+                // Create new user
+                $user = User::create([
+                    'name' => $name,
+                    'email' => $email,
+                    'password' => \Illuminate\Support\Str::random(24), // Disimpan plain text
+                    'google_id' => $googleId,
+                    'avatar' => $avatar,
+                    'wallet_balance' => 0
+                ]);
+            }
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Google Login Berhasil',
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Google login failed: ' . $e->getMessage()], 500);
+        }
     }
 }

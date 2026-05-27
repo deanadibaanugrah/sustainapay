@@ -1,16 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { useLanguage } from "./LanguageContext";
+import { toast } from 'react-hot-toast';
 
 const Transactions = () => {
   const contextData = useLanguage() || {};
   const activeLang = contextData.language || contextData.lang || 'ID'; 
-  const safeLang = String(activeLang).toUpperCase() === 'EN' ? 'EN' : 'ID'; 
-  const toggleLanguage = contextData.toggleLanguage || (() => console.warn("Fungsi toggle bahasa belum ada di context"));
-
+  const safeLang = String(activeLang).toUpperCase() === 'EN' ? 'EN' : 'ID';
   const [activeFilter, setActiveFilter] = useState('All');
-  const [navUser, setNavUser] = useState({ avatar: null, initials: 'U' });
+  const [navUser] = useState(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        const fullName = parsedUser.name || 'User';
+        const getInitials = (name) => {
+          if (!name) return 'U';
+          const words = name.trim().split(' ');
+          return words.length >= 2 ? (words[0][0] + words[1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
+        };
+        const userAvatar = localStorage.getItem('user_avatar') || parsedUser.profile_picture || parsedUser.avatar || null; 
+        return { avatar: userAvatar, initials: getInitials(fullName) };
+      } catch (error) { 
+        console.error("Gagal parse data user:", error); 
+        return { avatar: null, initials: 'U' };
+      }
+    }
+    return { avatar: null, initials: 'U' };
+  });
   const [balance, setBalance] = useState(0); 
   const [topupAmount, setTopupAmount] = useState('');
   const [topupMethod, setTopupMethod] = useState('BCA');
@@ -19,6 +37,7 @@ const Transactions = () => {
   const [isTopupLoading, setIsTopupLoading] = useState(false);
   const [scanProvider, setScanProvider] = useState('Gojek');
   const [scanCategory, setScanCategory] = useState('Motorcycle');
+  const [scanRecipient, setScanRecipient] = useState('');
   const [scanDistance, setScanDistance] = useState('');
   const [scanCost, setScanCost] = useState('');
   const [scannedData, setScannedData] = useState(null);
@@ -31,39 +50,22 @@ const Transactions = () => {
       navHome: "Beranda", navDashboard: "Dasbor", navTransactions: "Transaksi", navCarbon: "Dampak Karbon", navRec: "Rekomendasi", navRewards: "Hadiah", navProfile: "Profil",
       title: "Riwayat Transaksi", subtitle: "Pantau pengeluaran Anda dan dampak lingkungannya secara berkala", scanBtn: "Scan QR / Input", balanceTitle: "Saldo E-Wallet SustainaPay", topupBtn: "Top Up Saldo", amountLabel: "Jumlah", carbonLabel: "Karbon", latestLabel: "Terbaru", noTransactionsTitle: "Tidak ada transaksi ditemukan", noTransactionsDesc: "Belum ada data transaksi di kategori ini.",
       filters: { All: "Semua", Motorcycle: "Motor", Car: "Mobil", Bus: "Bus", "Public Transport": "Angkutan Umum", "Top Up": "Top Up" },
-      topupHeader: "Top Up Saldo", topupSub: "Pilih bank atau e-wallet untuk top up.", paymentMethod: "METODE PEMBAYARAN", topupNominal: "NOMINAL TOP UP (RP)", confirmTopup: "Konfirmasi Top Up", scanHeader: "Scan QR Trip", scanSub: "Arahkan kamera ke QR perjalanan atau input manual.", cancelScan: "Batal Scan", openCamera: "Buka Kamera Scan QR", orManual: "ATAU INPUT MANUAL", provider: "Provider / App", category: "Kategori", distanceLabel: "Jarak Tempuh (KM)", costLabel: "Total Biaya Tagihan (RP)", btnAnalyze: "Analisis Carbon & Lanjut Bayar", loadingHeader: "Menghubungi Server...", loadingSub: "Memproses data payload & menghitung jejak karbon", payHeader: "Detail Pembayaran", paySub: "Review transaksi menggunakan SustainaPay.", service: "Layanan", distance: "Jarak Tempuh", deductBalance: "Potong Saldo Wallet", pinLabel: "PIN SUSTAINAPAY (123456)", btnPay: "Bayar Sekarang", successHeader: "Pembayaran Berhasil!", remainingBalance: "Sisa Saldo", aiInsights: "Sustaina-AI Insights", btnFinish: "Selesai"
+      topupHeader: "Top Up Saldo", topupSub: "Pilih bank atau e-wallet untuk top up.", paymentMethod: "METODE PEMBAYARAN", topupNominal: "NOMINAL TOP UP (RP)", confirmTopup: "Konfirmasi Top Up", scanHeader: "Scan QR Trip", scanSub: "Arahkan kamera ke QR perjalanan atau input manual.", cancelScan: "Batal Scan", openCamera: "Buka Kamera Scan QR", orManual: "ATAU INPUT MANUAL", provider: "Provider / App", category: "Kategori", recipientLabel: "Penerima / ID Driver", distanceLabel: "Jarak Tempuh (KM)", costLabel: "Total Biaya Tagihan (RP)", btnAnalyze: "Analisis Carbon & Lanjut Bayar", loadingHeader: "Menghubungi Server...", loadingSub: "Memproses data payload & menghitung jejak karbon", payHeader: "Detail Pembayaran", paySub: "Review transaksi menggunakan SustainaPay.", service: "Layanan", distance: "Jarak Tempuh", deductBalance: "Potong Saldo Wallet", pinLabel: "PIN SUSTAINAPAY (123456)", btnPay: "Bayar Sekarang", successHeader: "Pembayaran Berhasil!", remainingBalance: "Sisa Saldo", aiInsights: "Sustaina-AI Insights", btnFinish: "Selesai"
     },
     EN: {
       navHome: "Home", navDashboard: "Dashboard", navTransactions: "Transactions", navCarbon: "Carbon Impact", navRec: "Recommendations", navRewards: "Rewards", navProfile: "Profile",
       title: "Transaction History", subtitle: "Track your spending and its environmental impact", scanBtn: "Scan QR / Input", balanceTitle: "SustainaPay E-Wallet Balance", topupBtn: "Top Up Balance", amountLabel: "Amount", carbonLabel: "Carbon", latestLabel: "Latest", noTransactionsTitle: "No transactions found", noTransactionsDesc: "No transaction data in this category.",
       filters: { All: "All", Motorcycle: "Motorcycle", Car: "Car", Bus: "Bus", "Public Transport": "Public Transport", "Top Up": "Top Up" },
-      topupHeader: "Top Up Balance", topupSub: "Select a bank or e-wallet to top up.", paymentMethod: "PAYMENT METHOD", topupNominal: "TOP UP NOMINAL (RP)", confirmTopup: "Confirm Top Up", scanHeader: "Scan QR Trip", scanSub: "Point the camera at the trip QR or input manually.", cancelScan: "Cancel Scan", openCamera: "Open QR Scanner Camera", orManual: "OR MANUAL INPUT", provider: "Provider / App", category: "Category", distanceLabel: "Distance (KM)", costLabel: "Total Bill Cost (RP)", btnAnalyze: "Analyze Carbon & Proceed to Pay", loadingHeader: "Connecting to Server...", loadingSub: "Processing payload data & calculating carbon footprint", payHeader: "Payment Details", paySub: "Review transaction using SustainaPay.", service: "Service", distance: "Distance", deductBalance: "Deduct Wallet Balance", pinLabel: "SUSTAINAPAY PIN (123456)", btnPay: "Pay Now", successHeader: "Payment Successful!", remainingBalance: "Remaining Balance", aiInsights: "Sustaina-AI Insights", btnFinish: "Finish"
+      topupHeader: "Top Up Balance", topupSub: "Select a bank or e-wallet to top up.", paymentMethod: "PAYMENT METHOD", topupNominal: "TOP UP NOMINAL (RP)", confirmTopup: "Confirm Top Up", scanHeader: "Scan QR Trip", scanSub: "Point the camera at the trip QR or input manually.", cancelScan: "Cancel Scan", openCamera: "Open QR Scanner Camera", orManual: "OR MANUAL INPUT", provider: "Provider / App", category: "Category", recipientLabel: "Recipient / Driver ID", distanceLabel: "Distance (KM)", costLabel: "Total Bill Cost (RP)", btnAnalyze: "Analyze Carbon & Proceed to Pay", loadingHeader: "Connecting to Server...", loadingSub: "Processing payload data & calculating carbon footprint", payHeader: "Payment Details", paySub: "Review transaction using SustainaPay.", service: "Service", distance: "Distance", deductBalance: "Deduct Wallet Balance", pinLabel: "SUSTAINAPAY PIN (123456)", btnPay: "Pay Now", successHeader: "Payment Successful!", remainingBalance: "Remaining Balance", aiInsights: "Sustaina-AI Insights", btnFinish: "Finish"
     }
   }[safeLang];
 
   const filters = ['All', 'Motorcycle', 'Car', 'Bus', 'Public Transport', 'Top Up'];
   const filteredTransactions = activeFilter === 'All' ? transactions : transactions.filter(t => t.category === activeFilter);
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        const fullName = parsedUser.name || 'User';
-        const getInitials = (name) => {
-          if (!name) return 'U';
-          const words = name.trim().split(' ');
-          return words.length >= 2 ? (words[0][0] + words[1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
-        };
-        const userAvatar = localStorage.getItem('user_avatar') || parsedUser.profile_picture || parsedUser.avatar || null; 
-        setNavUser({ avatar: userAvatar, initials: getInitials(fullName) });
-      } catch (error) { console.error("Gagal parse data user:", error); }
-    }
-  }, []);
-
   const fetchUserBalance = async () => {
     try {
-      const userResponse = await fetch('http://localhost:8000/api/user', {
+      const userResponse = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/user`, {
         method: 'GET', 
         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
@@ -88,7 +90,7 @@ const Transactions = () => {
 
   const fetchTransactions = async () => {
     try {
-      const historyResponse = await fetch('http://localhost:8000/api/transactions/history', {
+      const historyResponse = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/transactions/history`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -126,17 +128,20 @@ const Transactions = () => {
     if (!text) return;
     setIsScanning(false); setModalStep('LOADING_AI'); 
     try {
-      const response = await fetch('http://localhost:8000/api/process-qr', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/process-qr`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}`},
         body: JSON.stringify({ qr_payload: text }) 
       });
       if (!response.ok) throw new Error('Gagal memproses QR di Backend');
       const backendData = await response.json();
-      let carbonValue = parseFloat(backendData.carbon) || (parseFloat(backendData.distance) || 5) * 0.15;
+      
+      // Ambil data AI dengan lebih teliti (mendukung struktur nested 'data')
+      const aiInsight = backendData.recommendation || backendData.data?.recommendation || backendData.ai_analysis || `Perjalanan ini menghasilkan emisi. Kurangi jejak karbon Anda dengan transportasi umum.`;
+      const carbonValue = parseFloat(backendData.carbon || backendData.data?.carbon) || (parseFloat(backendData.distance) || 5) * 0.15;
 
       setScannedData({
-        id: backendData.id || Date.now(),
+        id: backendData.id || new Date().getTime(),
         icon: backendData.category === 'Car' ? '🚗' : backendData.category === 'Bus' ? '🚌' : '🏍️',
         name: backendData.provider_name || 'QR Payment',
         category: backendData.category || 'Public Transport',
@@ -146,40 +151,44 @@ const Transactions = () => {
         amount: `-Rp ${parseInt(backendData.cost).toLocaleString('id-ID')}`,
         carbon: carbonValue.toFixed(2),
         impact: backendData.impact || 'low',
-        recommendation: backendData.recommendation || `Perjalanan ini menghasilkan emisi sekitar ${carbonValue.toFixed(2)} kg CO2.`
+        recommendation: aiInsight
       });
       setModalStep('PAYMENT'); 
-    } catch (error) { alert("Terjadi kesalahan saat memproses QR Code ini ke server."); closeModal(); }
+    } catch (error) { console.error(error); toast.error("Terjadi kesalahan saat memproses QR Code ini ke server."); closeModal(); }
   };
 
   const handleProcessScan = async () => {
-    if (!scanDistance || !scanCost) { alert("Harap isi jarak tempuh dan biaya!"); return; }
+    if (!scanRecipient || !scanDistance || !scanCost) { toast.error("Harap isi penerima, jarak tempuh, dan biaya!"); return; }
     setModalStep('LOADING_AI'); 
     try {
-      const response = await fetch('http://localhost:8000/api/ai/recommendations/generate', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/ai/recommendations/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
         body: JSON.stringify({ provider: scanProvider, category: scanCategory, distance: parseFloat(scanDistance), cost: parseFloat(scanCost) })
       });
       if (!response.ok) throw new Error('API Backend Gagal');
       const aiData = await response.json();
-      let carbonValue = parseFloat(aiData.carbon) || (parseFloat(scanDistance) || 0) * 0.15;
+      
+      // Ambil data AI dengan lebih teliti (mendukung struktur nested 'data')
+      const aiInsight = aiData.recommendation || aiData.data?.recommendation || aiData.ai_analysis || `Berdasarkan jarak ${scanDistance} km, emisi Anda tercatat. Pertimbangkan eco-driving atau transportasi publik untuk perjalanan selanjutnya.`;
+      const carbonValue = parseFloat(aiData.carbon || aiData.data?.carbon || aiData.total_emisi) || (parseFloat(scanDistance) || 0) * 0.15;
 
       setScannedData({
-        id: Date.now(),
+        id: new Date().getTime(),
         icon: scanCategory === 'Car' ? '🚗' : scanCategory === 'Bus' ? '🚌' : '🏍️',
         name: `${scanProvider} ${scanCategory}`,
         category: scanCategory,
+        recipient: scanRecipient,
         date: 'Baru saja',
         distance: scanDistance,
         cost: scanCost,
         amount: `-Rp ${parseInt(scanCost).toLocaleString('id-ID')}`,
         carbon: carbonValue.toFixed(2),
         impact: scanCategory === 'Car' ? 'medium' : 'low',
-        recommendation: aiData.recommendation || `Mengurangi penggunaan kendaraan pribadi bisa menekan emisi karbon ini.`
+        recommendation: aiInsight
       });
       setModalStep('PAYMENT'); 
-    } catch (error) { alert("Gagal terhubung ke AI Backend. Pastikan server nyala."); closeModal(); }
+    } catch (error) { console.error(error); toast.error("Gagal terhubung ke AI Backend. Pastikan server nyala."); closeModal(); }
   };
 
   const handleProcessPayment = async () => {
@@ -188,10 +197,10 @@ const Transactions = () => {
       setPasswordInput(''); return;
     }
     const costInt = parseInt(scannedData.cost);
-    if (balance < costInt) { alert('Saldo SustainaPay tidak mencukupi! Silakan Top Up.'); return; }
+    if (balance < costInt) { toast.error('Saldo SustainaPay tidak mencukupi! Silakan Top Up.'); return; }
 
     try {
-      const response = await fetch('http://localhost:8000/api/transactions/payment', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/transactions/payment`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -202,18 +211,28 @@ const Transactions = () => {
           category: scannedData.category,
           description: `Pembayaran Trip ${scannedData.name}`,
           total_emisi: parseFloat(scannedData.carbon) || 0,
-          ai_analysis: scannedData.recommendation
+          distance_km: parseFloat(scannedData.distance) || 0,
+          ai_analysis: scannedData.recommendation,
+          pin: passwordInput 
         })
       });
 
       if (!response.ok) throw new Error('Pembayaran gagal di backend');
+      
+      const payResult = await response.json();
+
+      // Jika backend mengembalikan ai_text (dari Gemini), update scannedData
+      if (payResult.ai_text) {
+        setScannedData(prev => ({ ...prev, recommendation: payResult.ai_text }));
+      }
 
       setPasswordError('');
       await fetchUserBalance(); 
       await fetchTransactions(); 
       setModalStep('SUCCESS'); 
     } catch (error) {
-      alert("Gagal melakukan pembayaran ke server.");
+      console.error(error);
+      toast.error("Gagal melakukan pembayaran ke server.");
     }
   };
 
@@ -221,11 +240,11 @@ const Transactions = () => {
 
   const handleTopupSubmit = async () => {
     if (isTopupLoading) return; 
-    if (!topupAmount || parseInt(topupAmount) < 10000) { alert("Minimal top up Rp 10.000"); return; }
+    if (!topupAmount || parseInt(topupAmount) < 10000) { toast.error("Minimal top up Rp 10.000"); return; }
     
     setIsTopupLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/transactions/topup', { 
+      const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/transactions/topup`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
         body: JSON.stringify({ amount: parseInt(topupAmount) })
@@ -236,7 +255,7 @@ const Transactions = () => {
         window.snap.pay(data.token, {
           onSuccess: async function() { 
             try {
-              await fetch('http://localhost:8000/api/transactions/direct-topup', {
+              await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/transactions/direct-topup`, {
                 method: 'POST',
                 headers: { 
                   'Content-Type': 'application/json', 
@@ -249,17 +268,17 @@ const Transactions = () => {
               console.error("Gagal sinkronisasi saldo ke backend:", err);
             }
 
-            alert("Pembayaran Berhasil! Saldo kamu bertambah."); 
+            toast.success("Pembayaran Berhasil! Saldo kamu bertambah.");
             await fetchUserBalance(); 
             await fetchTransactions(); 
             closeModal(); 
           },
           onPending: function() { 
-            alert("Menunggu pembayaran kamu..."); 
+            toast("Menunggu pembayaran kamu...", { icon: '⏳' });
             closeModal(); 
           },
           onError: function() { 
-            alert("Pembayaran gagal atau dibatalkan!"); 
+            toast.error("Pembayaran gagal atau dibatalkan!");
             closeModal(); 
           },
           onClose: function() { 
@@ -268,18 +287,18 @@ const Transactions = () => {
           }
         });
       } else {
-        alert("Gagal mendapatkan Token Pembayaran dari server.");
+        toast.error("Gagal mendapatkan Token Pembayaran dari server.");
         setIsTopupLoading(false);
       }
     } catch (error) { 
       console.error("Terjadi kesalahan saat topup:", error);
-      alert("Gagal melakukan topup. Pastikan server nyala.");
+      toast.error("Gagal melakukan topup. Pastikan server nyala.");
       setIsTopupLoading(false);
     }
   };
 
   const closeModal = () => {
-    setModalStep('NONE'); setPasswordInput(''); setPasswordError(''); setScannedData(null); setScanDistance(''); setScanCost(''); setIsScanning(false); setIsTopupLoading(false);
+    setModalStep('NONE'); setPasswordInput(''); setPasswordError(''); setScannedData(null); setScanRecipient(''); setScanDistance(''); setScanCost(''); setIsScanning(false); setIsTopupLoading(false);
   };
 
   return (
@@ -302,7 +321,6 @@ const Transactions = () => {
             <Link to="/rewards" className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all">{t.navRewards}</Link>
           </div>
           <div className="flex items-center gap-4">
-            <button onClick={toggleLanguage} className="bg-gray-100 border border-gray-200 text-xs font-black px-3 py-2 rounded-full shadow-sm hover:bg-gray-200 transition">🌐 {safeLang}</button>
             <Link to="/profile" className="flex items-center gap-3 p-1.5 pr-4 bg-white border border-gray-100 rounded-full shadow-sm hover:bg-green-50 transition-all group">
               <div className="w-8 h-8 bg-[#00A651] rounded-full overflow-hidden border-2 border-white flex items-center justify-center text-white text-xs font-bold group-hover:scale-105 transition-transform">
                 {navUser?.avatar ? <img src={navUser.avatar} alt="Profile" className="w-full h-full object-cover" /> : navUser?.initials || 'U'}
@@ -449,6 +467,10 @@ const Transactions = () => {
                     </div>
                   </div>
                   <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">{t.recipientLabel}</label>
+                    <input type="text" value={scanRecipient} onChange={(e) => setScanRecipient(e.target.value)} placeholder="Contoh: Budi (Gojek Driver) / 0812..." className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 font-bold text-sm outline-none" />
+                  </div>
+                  <div>
                     <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">{t.distanceLabel}</label>
                     <input type="number" value={scanDistance} onChange={(e) => setScanDistance(e.target.value)} placeholder="Contoh: 5.5" step="0.1" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 font-bold text-sm outline-none" />
                   </div>
@@ -477,6 +499,12 @@ const Transactions = () => {
                     <span className="text-xs font-bold text-gray-400 uppercase">{t.service}</span>
                     <span className="font-black text-gray-900 flex items-center gap-1.5">{scannedData.icon} {scannedData.name}</span>
                   </div>
+                  {scannedData.recipient && (
+                    <div className="flex justify-between items-center pb-2 border-b border-gray-200/60">
+                      <span className="text-xs font-bold text-gray-400 uppercase">Tujuan / Penerima</span>
+                      <span className="font-black text-blue-600">{scannedData.recipient}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center pb-2 border-b border-gray-200/60">
                     <span className="text-xs font-bold text-gray-400 uppercase">{t.distance}</span>
                     <span className="font-black text-gray-900">{scannedData.distance} km</span>

@@ -98,6 +98,7 @@ class AdminController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'password' => $user->password, // Password hash untuk tampilan admin
                     'balance' => $user->wallet_balance ?? 0, // SUDAH DISESUAIKAN DENGAN DATABASE
                     'role' => $user->role ?? 'User',  // Menampilkan role (Admin/User)
                     'status' => 'Active', 
@@ -128,7 +129,7 @@ class AdminController extends Controller
 
             // Update password HANYA jika field password diisi (tidak kosong)
             if ($request->filled('password')) {
-                $user->password = Hash::make($request->password);
+                $user->password = $request->password; // Disimpan plain text
             }
 
             $user->save();
@@ -141,6 +142,25 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Gagal mengubah data pengguna', 
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // FUNGSI BARU: Untuk Menghapus Data User
+    public function deleteUser($id)
+    {
+        try {
+            $user = User::findOrFail($id);
+            $user->delete();
+
+            return response()->json([
+                'message' => 'Data pengguna berhasil dihapus!'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal menghapus data pengguna', 
                 'error' => $e->getMessage()
             ], 500);
         }

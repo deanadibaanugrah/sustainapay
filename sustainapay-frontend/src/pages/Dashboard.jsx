@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from "./LanguageContext";
 // Mengaktifkan Recharts untuk visualisasi data emisi karbon
@@ -149,44 +149,37 @@ const Dashboard = () => {
   const t = useMemo(() => translations[safeLang] || translations.id, [safeLang]);
 
   const [activeTab, setActiveTab] = useState('Week');
-  const [navUser, setNavUser] = useState({ avatar: '', initials: 'U' });
-  const [dashboardData, setDashboardData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  const handleLogout = React.useCallback(() => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('user_avatar');
-    navigate('/login');
-  }, [navigate]);
-
-  // Load User Info & Avatar secara Aman
-  useEffect(() => {
+  const [navUser] = useState(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        
         const getInitials = (name) => {
           if (!name) return 'U';
           const words = name.split(' ');
           if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
           return name.substring(0, 2).toUpperCase();
         };
-
         const initials = getInitials(parsedUser?.name);
-        const userAvatar = localStorage.getItem('user_avatar') 
-                          || parsedUser?.avatar 
-                          || `https://ui-avatars.com/api/?name=${initials}&background=00A651&color=fff`;
-        
-        setNavUser({ avatar: userAvatar, initials });
-      } catch (e) {
-        console.error("Gagal parse data user dari localStorage:", e);
-        setNavUser({ avatar: '', initials: 'U' });
+        const userAvatar = localStorage.getItem('user_avatar') || parsedUser?.avatar || `https://ui-avatars.com/api/?name=${initials}&background=00A651&color=fff`;
+        return { name: parsedUser?.name, avatar: userAvatar, initials };
+      } catch (err) {
+        console.error(err);
+        return { name: 'User', avatar: null, initials: 'U' };
       }
     }
-  }, []);
+    return { avatar: '', initials: 'U' };
+  });
+  const [dashboardData, setDashboardData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('user_avatar');
+    navigate('/login');
+  }, [navigate]);
 
   // Fetch data dari endpoint dashboard Laravel
   useEffect(() => {
@@ -199,7 +192,7 @@ const Dashboard = () => {
       }
 
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/dashboard', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/dashboard`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -341,7 +334,7 @@ const Dashboard = () => {
               <span className="bg-green-100 text-green-600 text-xs font-bold px-3 py-1 rounded-full">↑ 23%</span>
             </div>
             <h2 className="text-4xl font-black text-gray-900">
-              {dashboardData?.summary?.total_carbon || '557.4'} <span className="text-lg font-bold text-gray-400">kg</span>
+              {dashboardData?.summary?.total_carbon ?? '557.4'} <span className="text-lg font-bold text-gray-400">kg</span>
             </h2>
             <p className="text-xs text-gray-400 mt-1 font-bold">{t.vsLastMonth}</p>
           </div>
@@ -352,7 +345,7 @@ const Dashboard = () => {
               <span className="bg-pink-100 text-pink-500 text-xs font-bold px-3 py-1 rounded-full">↑ 5%</span>
             </div>
             <h2 className="text-4xl font-black text-gray-900">
-              {dashboardData?.summary?.this_month || '124.5'} <span className="text-lg font-bold text-gray-400">kg</span>
+              {dashboardData?.summary?.this_month ?? '124.5'} <span className="text-lg font-bold text-gray-400">kg</span>
             </h2>
             <p className="text-xs text-gray-400 mt-1 font-bold">{t.vsLastMonth}</p>
           </div>
@@ -363,7 +356,7 @@ const Dashboard = () => {
               <span className="bg-green-100 text-green-600 text-xs font-bold px-3 py-1 rounded-full">↑ 23%</span>
             </div>
             <h2 className="text-4xl font-black text-gray-900">
-              {dashboardData?.summary?.carbon_saved || '124.5'} <span className="text-lg font-bold text-gray-400">kg</span>
+              {dashboardData?.summary?.carbon_saved ?? '124.5'} <span className="text-lg font-bold text-gray-400">kg</span>
             </h2>
             <p className="text-xs text-gray-400 mt-1 font-bold">{t.vsLastMonth}</p>
           </div>
@@ -453,22 +446,37 @@ const Dashboard = () => {
           <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-gray-50">
             <h3 className="text-xl font-black text-gray-900 mb-6">{t.quickRecs}</h3>
             <div className="space-y-6">
-              <div className="p-5 bg-green-50 rounded-[2rem] border border-green-100 hover:shadow-md transition cursor-pointer">
-                <p className="font-black text-gray-800 mb-1">{t.rec1Title}</p>
-                <p className="text-xs text-gray-500 leading-relaxed mb-3">{t.rec1Desc}</p>
-                <div className="flex justify-between items-center">
-                   <span className="bg-green-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">{t.highImpact}</span>
-                   <span className="text-[10px] font-black text-green-600 underline">{t.save15}</span>
-                </div>
-              </div>
-              <div className="p-5 bg-purple-50 rounded-[2rem] border border-purple-100 hover:shadow-md transition cursor-pointer">
-                <p className="font-black text-gray-800 mb-1">{t.rec2Title}</p>
-                <p className="text-xs text-gray-500 leading-relaxed mb-3">{t.rec2Desc}</p>
-                <div className="flex justify-between items-center">
-                   <span className="bg-purple-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">{t.mediumImpact}</span>
-                   <span className="text-[10px] font-black text-purple-600 underline">{t.save15}</span>
-                </div>
-              </div>
+              {dashboardData?.quick_recommendations && dashboardData.quick_recommendations.length > 0 ? (
+                dashboardData.quick_recommendations.map((rec, idx) => (
+                  <div key={idx} className={`p-5 rounded-[2rem] border hover:shadow-md transition cursor-pointer ${idx % 2 === 0 ? 'bg-green-50 border-green-100' : 'bg-purple-50 border-purple-100'}`}>
+                    <p className="font-black text-gray-800 mb-1">{rec.title || 'Saran AI'}</p>
+                    <p className="text-xs text-gray-500 leading-relaxed mb-3">{rec.description}</p>
+                    <div className="flex justify-between items-center">
+                       <span className={`text-white text-[10px] font-black px-3 py-1 rounded-full uppercase ${idx % 2 === 0 ? 'bg-green-600' : 'bg-purple-600'}`}>{rec.impact || 'Dampak Sedang'}</span>
+                       {rec.savings && <span className={`text-[10px] font-black underline ${idx % 2 === 0 ? 'text-green-600' : 'text-purple-600'}`}>Hemat {rec.savings}</span>}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <>
+                  <div className="p-5 bg-green-50 rounded-[2rem] border border-green-100 hover:shadow-md transition cursor-pointer">
+                    <p className="font-black text-gray-800 mb-1">{t.rec1Title}</p>
+                    <p className="text-xs text-gray-500 leading-relaxed mb-3">{t.rec1Desc}</p>
+                    <div className="flex justify-between items-center">
+                       <span className="bg-green-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">{t.highImpact}</span>
+                       <span className="text-[10px] font-black text-green-600 underline">{t.save15}</span>
+                    </div>
+                  </div>
+                  <div className="p-5 bg-purple-50 rounded-[2rem] border border-purple-100 hover:shadow-md transition cursor-pointer">
+                    <p className="font-black text-gray-800 mb-1">{t.rec2Title}</p>
+                    <p className="text-xs text-gray-500 leading-relaxed mb-3">{t.rec2Desc}</p>
+                    <div className="flex justify-between items-center">
+                       <span className="bg-purple-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">{t.mediumImpact}</span>
+                       <span className="text-[10px] font-black text-purple-600 underline">{t.save15}</span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
