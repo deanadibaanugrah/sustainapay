@@ -358,10 +358,7 @@ const AdminDashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-6">
-            <div className="relative cursor-pointer">
-              <Bell className="text-gray-500 hover:text-[#00A651] transition" size={20} />
-              <span className="absolute -top-1 -right-1 bg-red-500 w-2.5 h-2.5 rounded-full border-2 border-white"></span>
-            </div>
+
             <div className="flex items-center gap-3 cursor-pointer group">
               <div className="text-right hidden md:block">
                 <p className="text-sm font-bold text-gray-800 group-hover:text-[#00A651] transition">Admin User</p>
