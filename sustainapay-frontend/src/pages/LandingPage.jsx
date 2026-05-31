@@ -153,7 +153,7 @@ const LandingPage = () => {
                         </div>
                         
                         {/* Deskripsi Step */}
-                        <div className={`transition-all duration-500 ease-in-out ${isActive ? 'max-h-32 opacity-100 pb-4 px-4' : 'max-h-0 opacity-0 px-4'}`}>
+                        <div className={`transition-all duration-500 ease-in-out ${isActive ? 'max-h-60 opacity-100 pb-4 px-4' : 'max-h-0 opacity-0 px-4'}`}>
                           <div className="w-full h-[1px] bg-green-100 mb-3"></div>
                           <p className="text-gray-600 text-xs sm:text-sm font-medium leading-relaxed">
                             {step.desc}

@@ -10,10 +10,10 @@
     "aboutDesc": "SustainaPay is an e-wallet web platform that functions not only as a digital transaction tool but also features carbon footprint calculation for every transaction. Our primary goal is to increase user awareness of the environmental impact of daily activities, particularly transportation. We have chosen highly accurate emission data by referencing Jejakin a trusted platform in carbon calculation.",
     "flowTitle": "How It Works", "flowSub": "Click each step below to reveal or hide the details!",
     "steps": [
-      { "title": "Transact", "desc": "Use SustainaPay for your daily expenses, especially for your daily transportation needs.", "icon": "💳" },
-      { "title": "Calculate", "desc": "The system automatically calculates your carbon footprint with high accuracy via Jejakin database.", "icon": "⚙️" },
-      { "title": "Monitor", "desc": "Track your emission history and set green targets on your personal interactive dashboard.", "icon": "📊" },
-      { "title": "Earn Rewards", "desc": "Reduce emissions to earn eco-points and redeem them for ecological rewards like planting trees.", "icon": "🌳" }
+      { "title": "Transact", "desc": "Use SustainaPay for your daily expenses, especially for transportation needs.", "icon": "💳" },
+      { "title": "Calculate", "desc": "Our system auto-calculates your carbon footprint with high accuracy using Jejakin.", "icon": "⚙️" },
+      { "title": "Monitor", "desc": "Track your emission history and set green targets on your personal dashboard.", "icon": "📊" },
+      { "title": "Earn Rewards", "desc": "Reduce emissions to earn eco-points and redeem them for green rewards like planting trees.", "icon": "🌳" }
     ]
   },
   "dashboard": {
