@@ -5,22 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class UserVoucher extends Model
+class Voucher extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
         'title',
         'provider',
         'icon',
+        'image',
         'type',
         'cost',
-        'voucher_code',
+        'tier_required'
     ];
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
 }

@@ -47,7 +47,7 @@ class AiController extends Controller
         $carbon = round($distance * 0.15, 2);
 
         // Panggil AI
-        $recommendation = self::callOpenAI($category, $provider, $distance, $carbon);
+        $recommendation = self::callGemini($category, $provider, $distance, $carbon);
 
         return response()->json([
             'success' => true,
@@ -57,21 +57,21 @@ class AiController extends Controller
     }
 
     /**
-     * Helper statis: panggil Google Gemini API dan kembalikan teks rekomendasi.
+     * Helper statis: panggil Gemini API dan kembalikan teks rekomendasi.
      * Bisa dipanggil dari controller lain juga (misal TransactionController).
      */
-    public static function callOpenAI(string $category, string $provider, float $distance, float $carbon): string
+    public static function callGemini(string $category, string $provider, float $distance, float $carbon): string
     {
-        $fallback = "Perjalanan sejauh {$distance} km kamu telah tercatat. Pertimbangkan untuk mencoba carpooling atau transportasi publik lain kali.";
+        $fallback = self::smartFallback($category, $provider, $distance, $carbon);
 
         $apiKey = config('services.gemini.api_key');
         
         if (!$apiKey) {
-            Log::warning("Gemini API Key tidak ditemukan di config. Pastikan GEMINI_API_KEY ada di .env dan config/services.php.");
-            return $fallback;
+            Log::warning("Gemini API Key tidak ditemukan di config.");
+            return "⚠️ Sistem AI belum dikonfigurasi. " . $fallback;
         }
 
-        $prompt = "Sebagai asisten keberlanjutan AI untuk aplikasi pembayaran transportasi bernama SustainaPay, berikan tepat 1-2 kalimat singkat (maksimal 35 kata) berisi saran praktis dan spesifik untuk mengurangi emisi karbon dari perjalanan menggunakan {$category} ({$provider}) sejauh {$distance} km yang menghasilkan {$carbon} kg CO2. Variasikan saranmu setiap kali - jangan selalu menyebut carpooling. Bisa sarankan: rute lebih efisien, kendaraan listrik, jadwal perjalanan off-peak, gabungan tujuan dalam satu perjalanan, bike-sharing untuk jarak dekat, dll. Gunakan bahasa Indonesia santai tapi profesional. Jangan gunakan markdown, bold, atau bullet points.";
+        $prompt = "Sebagai pakar keberlanjutan AI untuk aplikasi SustainaPay, evaluasi perjalanan menggunakan {$category} ({$provider}) sejauh {$distance} km yang menghasilkan emisi {$carbon} kg CO2. Berikan 1-2 kalimat singkat (maksimal 35 kata) yang menilai apakah untuk jarak segitu penggunaan {$category} sudah efisien / worth it. Jika tidak efisien, berikan rekomendasi kendaraan atau solusi alternatif yang lebih baik untuk meminimalisir emisi karbon. Gunakan bahasa Indonesia santai, ramah, dan jangan gunakan format markdown/bold.";
 
         try {
             Log::info("Mencoba Gemini model: gemini-1.5-flash untuk: {$category} ({$provider}), {$distance} km, {$carbon} kg CO2");
@@ -81,7 +81,7 @@ class AiController extends Controller
             ])
             ->withoutVerifying()
             ->timeout(15)
-            ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}", [
+            ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}", [
                 'contents' => [
                     [
                         'parts' => [
@@ -91,7 +91,6 @@ class AiController extends Controller
                 ],
                 'generationConfig' => [
                     'temperature' => 0.9,
-                    'maxOutputTokens' => 100,
                 ]
             ]);
 
@@ -105,19 +104,22 @@ class AiController extends Controller
                     $cleaned = trim($recommendation);
                     Log::info("Gemini berhasil: " . $cleaned);
                     return $cleaned;
-                } else {
-                    Log::warning("Gemini response OK tapi tidak ada teks: " . json_encode($data));
                 }
-            } else {
-                Log::error("Gemini gagal. Status: {$response->status()}, Body: " . $response->body());
             }
+            
+            // Jika gagal (seperti leaked, limit quota, dsb)
+            $status = $response->status();
+            Log::error("Gemini gagal. Status: {$status}, Body: " . $response->body());
+            
+            // Hitung estimasi waktu reset (misal: besok jam 15:00 WIB sesuai reset harian kuota)
+            $resetTime = now()->addDay()->setTime(15, 0)->format('d M Y, H:i');
+            
+            return "⚠️ Maaf, limit token AI habis atau API sedang bermasalah. Sistem akan berfungsi normal kembali sekitar $resetTime. " . $fallback;
+
         } catch (\Exception $e) {
             Log::error("Gemini Exception: " . $e->getMessage());
+            return "⚠️ Koneksi ke server AI terputus. " . $fallback;
         }
-
-        Log::warning("Gemini gagal, menggunakan smart fallback lokal.");
-
-        return self::smartFallback($category, $provider, $distance, $carbon);
     }
 
     /**

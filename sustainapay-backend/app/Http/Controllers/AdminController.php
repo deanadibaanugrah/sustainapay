@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Transaction;
 use App\Models\CarbonRecord;
+use App\Models\Voucher;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash; // WAJIB untuk Enkripsi Password Baru
 use Carbon\Carbon;
@@ -161,6 +162,136 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Gagal menghapus data pengguna', 
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // FUNGSI BARU: Untuk Update Poin User
+    public function updatePoints(Request $request, $id)
+    {
+        $request->validate([
+            'action' => 'required|in:add,subtract,set',
+            'amount' => 'required|integer|min:0'
+        ]);
+
+        try {
+            $user = User::findOrFail($id);
+            
+            if ($request->action === 'add') {
+                $user->reward_points += $request->amount;
+            } elseif ($request->action === 'subtract') {
+                $user->reward_points = max(0, $user->reward_points - $request->amount);
+            } elseif ($request->action === 'set') {
+                $user->reward_points = $request->amount;
+            }
+            
+            $user->save();
+
+            return response()->json([
+                'message' => 'Poin pengguna berhasil diperbarui!',
+                'user' => $user
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal memperbarui poin pengguna', 
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ==========================================
+    // FUNGSI CRUD VOUCHERS / REWARDS
+    // ==========================================
+    
+    public function vouchers()
+    {
+        try {
+            $vouchers = Voucher::orderBy('created_at', 'desc')->get();
+            return response()->json(['vouchers' => $vouchers]);
+        } catch (\Exception $e) {
+            return response()->json(['vouchers' => [], 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function storeVoucher(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string',
+            'provider' => 'required|string',
+            'type' => 'required|in:reward,donation',
+            'cost' => 'required|integer|min:1',
+            'tier_required' => 'required|string'
+        ]);
+
+        try {
+            $data = $request->except('image');
+            if ($request->hasFile('image')) {
+                $path = $request->file('image')->store('vouchers', 'public');
+                $data['image'] = url('storage/' . $path);
+            } elseif ($request->filled('image')) {
+                $data['image'] = $request->image;
+            }
+
+            $voucher = Voucher::create($data);
+            return response()->json([
+                'message' => 'Voucher berhasil ditambahkan!',
+                'voucher' => $voucher
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal menambah voucher', 
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateVoucher(Request $request, $id)
+    {
+        $request->validate([
+            'title' => 'required|string',
+            'provider' => 'required|string',
+            'type' => 'required|in:reward,donation',
+            'cost' => 'required|integer|min:1',
+            'tier_required' => 'required|string'
+        ]);
+
+        try {
+            $voucher = Voucher::findOrFail($id);
+            $data = $request->except('image');
+            
+            if ($request->hasFile('image')) {
+                $path = $request->file('image')->store('vouchers', 'public');
+                $data['image'] = url('storage/' . $path);
+            } elseif ($request->filled('image')) {
+                $data['image'] = $request->image;
+            }
+
+            $voucher->update($data);
+            return response()->json([
+                'message' => 'Voucher berhasil diubah!',
+                'voucher' => $voucher
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal mengubah voucher', 
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteVoucher($id)
+    {
+        try {
+            $voucher = Voucher::findOrFail($id);
+            $voucher->delete();
+            return response()->json([
+                'message' => 'Voucher berhasil dihapus!'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal menghapus voucher', 
                 'error' => $e->getMessage()
             ], 500);
         }

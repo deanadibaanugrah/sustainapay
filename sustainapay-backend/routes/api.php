@@ -32,6 +32,12 @@ Route::get('/admin/dashboard', [AdminController::class, 'dashboard']);
 Route::get('/admin/users', [AdminController::class, 'users']);
 Route::put('/admin/users/{id}', [AdminController::class, 'updateUser']);
 Route::delete('/admin/users/{id}', [AdminController::class, 'deleteUser']);
+Route::post('/admin/users/{id}/points', [AdminController::class, 'updatePoints']);
+
+Route::get('/admin/vouchers', [AdminController::class, 'vouchers']);
+Route::post('/admin/vouchers', [AdminController::class, 'storeVoucher']);
+Route::put('/admin/vouchers/{id}', [AdminController::class, 'updateVoucher']);
+Route::delete('/admin/vouchers/{id}', [AdminController::class, 'deleteVoucher']);
 
 
 // ==========================================
