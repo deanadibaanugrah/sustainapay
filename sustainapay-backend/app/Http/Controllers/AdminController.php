@@ -167,6 +167,40 @@ class AdminController extends Controller
         }
     }
 
+    // FUNGSI BARU: Untuk Update Poin User
+    public function updatePoints(Request $request, $id)
+    {
+        $request->validate([
+            'action' => 'required|in:add,subtract,set',
+            'amount' => 'required|integer|min:0'
+        ]);
+
+        try {
+            $user = User::findOrFail($id);
+            
+            if ($request->action === 'add') {
+                $user->reward_points += $request->amount;
+            } elseif ($request->action === 'subtract') {
+                $user->reward_points = max(0, $user->reward_points - $request->amount);
+            } elseif ($request->action === 'set') {
+                $user->reward_points = $request->amount;
+            }
+            
+            $user->save();
+
+            return response()->json([
+                'message' => 'Poin pengguna berhasil diperbarui!',
+                'user' => $user
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal memperbarui poin pengguna', 
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     // ==========================================
     // FUNGSI CRUD VOUCHERS / REWARDS
     // ==========================================
@@ -192,7 +226,15 @@ class AdminController extends Controller
         ]);
 
         try {
-            $voucher = Voucher::create($request->all());
+            $data = $request->except('image');
+            if ($request->hasFile('image')) {
+                $path = $request->file('image')->store('vouchers', 'public');
+                $data['image'] = url('storage/' . $path);
+            } elseif ($request->filled('image')) {
+                $data['image'] = $request->image;
+            }
+
+            $voucher = Voucher::create($data);
             return response()->json([
                 'message' => 'Voucher berhasil ditambahkan!',
                 'voucher' => $voucher
@@ -217,7 +259,16 @@ class AdminController extends Controller
 
         try {
             $voucher = Voucher::findOrFail($id);
-            $voucher->update($request->all());
+            $data = $request->except('image');
+            
+            if ($request->hasFile('image')) {
+                $path = $request->file('image')->store('vouchers', 'public');
+                $data['image'] = url('storage/' . $path);
+            } elseif ($request->filled('image')) {
+                $data['image'] = $request->image;
+            }
+
+            $voucher->update($data);
             return response()->json([
                 'message' => 'Voucher berhasil diubah!',
                 'voucher' => $voucher

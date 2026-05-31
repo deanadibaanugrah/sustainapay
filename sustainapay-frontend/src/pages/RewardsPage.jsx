@@ -2,104 +2,6 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from "./LanguageContext";
 
-// --- KAMUS TERJEMAHAN UNTUK REWARDS PAGE ---
-const translations = {
-  en: {
-    home: "Home",
-    dashboard: "Dashboard",
-    transactions: "Transactions",
-    carbonImpact: "Carbon Impact",
-    recommendations: "Recommendations",
-    rewards: "Rewards",
-    profile: "Profile",
-    title: "Your Eco-Rewards",
-    subtitle: "Earn points for sustainable choices and redeem them for exclusive discounts or donate to green causes.",
-    ptsBalance: "Points Balance",
-    pts: "pts",
-    platinumTier: "Platinum Tier",
-    ptsAway: "points away from Platinum Tier!",
-    tabRedeem: "Redeem Rewards",
-    tabVouchers: "My Vouchers",
-    tabDonations: "Impact Donations",
-    aiSuggestTitle: "Sustaina-AI Suggestion",
-    aiSuggestDesc: "We noticed you have high transport emissions this month. Redeeming the Free City Transit Pass could help lower your carbon footprint by up to 20% next month!",
-    cost: "Cost",
-    redeemNow: "Redeem Now",
-    notEnough: "Not Enough Points",
-    noVouchersTitle: "No Vouchers Yet",
-    noVouchersDesc: "You haven't redeemed any rewards. Go explore the catalog!",
-    by: "By",
-    scanToUse: "Scan to Use",
-    redeemedOn: "Redeemed on",
-    ngoPartner: "NGO Partner",
-    donation: "Donation",
-    donatePoints: "Donate Points",
-    toastSuccess: "Successfully redeemed:",
-    toastFail: "Not enough points!",
-    footerDesc: "Track your carbon footprint with every transactions.",
-    product: "Product",
-    features: "Features",
-    pricing: "Pricing",
-    security: "Security",
-    company: "Company",
-    about: "About",
-    blog: "Blog",
-    careers: "Careers",
-    support: "Support",
-    helpCenter: "Help Center",
-    contact: "Contact",
-    privacy: "Privacy",
-    rights: "All rights reserved."
-  },
-  id: {
-    home: "Beranda",
-    dashboard: "Dasbor",
-    transactions: "Transaksi",
-    carbonImpact: "Dampak Karbon",
-    recommendations: "Rekomendasi",
-    rewards: "Hadiah",
-    profile: "Profil",
-    title: "Eco-Rewards Anda",
-    subtitle: "Kumpulkan poin dari pilihan berkelanjutan Anda dan tukarkan dengan diskon eksklusif atau donasi hijau.",
-    ptsBalance: "Saldo Poin",
-    pts: "poin",
-    platinumTier: "Tingkat Platinum",
-    ptsAway: "poin lagi menuju Tingkat Platinum!",
-    tabRedeem: "Tukar Hadiah",
-    tabVouchers: "Voucher Saya",
-    tabDonations: "Donasi Dampak",
-    aiSuggestTitle: "Saran Sustaina-AI",
-    aiSuggestDesc: "Kami perhatikan emisi transportasi Anda tinggi bulan ini. Menukarkan Tiket Transit Kota Gratis dapat membantu menurunkan jejak karbon hingga 20% bulan depan!",
-    cost: "Biaya",
-    redeemNow: "Tukar Sekarang",
-    notEnough: "Poin Tidak Cukup",
-    noVouchersTitle: "Belum Ada Voucher",
-    noVouchersDesc: "Anda belum menukarkan hadiah apa pun. Ayo jelajahi katalog!",
-    by: "Oleh",
-    scanToUse: "Pindai untuk Menggunakan",
-    redeemedOn: "Ditukarkan pada",
-    ngoPartner: "Mitra LSM",
-    donation: "Donasi",
-    donatePoints: "Donasikan Poin",
-    toastSuccess: "Berhasil menukarkan:",
-    toastFail: "Poin tidak cukup!",
-    footerDesc: "Lacak jejak karbon Anda di setiap transaksi.",
-    product: "Produk",
-    features: "Fitur",
-    pricing: "Harga",
-    security: "Keamanan",
-    company: "Perusahaan",
-    about: "Tentang",
-    blog: "Blog",
-    careers: "Karier",
-    support: "Dukungan",
-    helpCenter: "Pusat Bantuan",
-    contact: "Kontak",
-    privacy: "Privasi",
-    rights: "Hak cipta dilindungi."
-  }
-};
-
 // Dummy images fallback
 const defaultImages = {
   reward: 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&w=600&q=80',
@@ -107,12 +9,13 @@ const defaultImages = {
 };
 
 // Internal keys untuk state Tabs (jangan diterjemahkan agar logic tidak rusak)
-const tabKeys = ['Redeem Rewards', 'My Vouchers', 'Impact Donations'];
+const tabKeys = ['Redeem Rewards', 'My Vouchers'];
 
 const RewardsPage = () => {
   // 1. Ambil state lang dari Context
-  const { lang } = useLanguage(); 
-  const t = translations[lang];
+  const contextData = useLanguage() || {};
+  const tContext = contextData.t || {};
+  const t = tContext.rewards || {};
 
   const [activeTab, setActiveTab] = useState('Redeem Rewards');
   const [userPoints, setUserPoints] = useState(0);
@@ -256,9 +159,7 @@ const RewardsPage = () => {
           
           {/* KIRI: Logo & Nama Brand */}
           <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition group">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#00A651] to-green-700 flex items-center justify-center rounded-xl shadow-lg shadow-green-200 group-hover:scale-105 transition-transform">
-              <span className="text-white font-black text-[10px] tracking-widest">LOGO</span>
-            </div>
+            <img src="/logo.jpg" alt="Logo" className="w-10 h-10 object-cover rounded-xl border border-green-700/40 shadow-md ring-2 ring-white/50 group-hover:scale-105 transition-transform" />
             <span className="font-black text-xl tracking-tight text-gray-900 hidden md:block">
               Sustaina<span className="text-[#00A651]">Pay</span>
             </span>
@@ -464,93 +365,11 @@ const RewardsPage = () => {
           </div>
         )}
 
-        {/* TAB CONTENT: Impact Donations */}
-        {activeTab === 'Impact Donations' && (
-          <div className="animate-[fadeIn_0.3s_ease-out]">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {catalog.filter(v => v.type === 'donation').map((item) => (
-                <div key={item.id} className="bg-white rounded-[2rem] overflow-hidden border border-green-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group">
-                  <div className="relative h-40 overflow-hidden">
-                    <img src={item.image || defaultImages.donation} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    <div className="absolute top-3 left-3 bg-[#00A651] text-white px-3 py-1 rounded-full text-xs font-black shadow-sm flex items-center gap-1">
-                      <span>{item.icon}</span> {t.ngoPartner}
-                    </div>
-                    {item.tier_required && item.tier_required !== 'Bronze' && (
-                       <div className="absolute top-3 right-3 bg-indigo-500 text-white px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider">
-                         {item.tier_required}
-                       </div>
-                    )}
-                  </div>
-                  <div className="p-5 flex flex-col flex-grow">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4 leading-snug">{item.title}</h3>
-                    <div className="mt-auto">
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="text-xs font-bold text-gray-400 uppercase">{t.donation}</span>
-                        <span className={`font-black px-3 py-1 rounded-lg text-sm ${userPoints >= item.cost ? 'text-[#00A651] bg-[#E6FAF1]' : 'text-red-500 bg-red-50'}`}>
-                          {item.cost} {t.pts}
-                        </span>
-                      </div>
-                      <button 
-                        onClick={() => handleRedeem(item)}
-                        disabled={userPoints < item.cost || !checkTier(item.tier_required)}
-                        className={`w-full py-3 rounded-xl text-sm font-bold transition-colors shadow-sm ${
-                          (userPoints >= item.cost && checkTier(item.tier_required))
-                            ? 'bg-[#00A651] text-white hover:bg-green-700' 
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        }`}
-                      >
-                        {!checkTier(item.tier_required) 
-                          ? `Requires ${item.tier_required}` 
-                          : userPoints >= item.cost ? t.donatePoints : t.notEnough}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+
 
       </main>
 
       {/* FOOTER */}
-      <footer className="bg-[#0B132B] text-white py-16 mt-16">
-        <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-4 gap-12">
-          <div>
-            <div className="w-16 h-10 bg-green-800 border-2 border-white mb-6 flex items-center justify-center text-[8px] font-bold">LOGO</div>
-            <p className="text-xs text-gray-400 leading-relaxed font-medium">
-              {t.footerDesc}
-            </p>
-          </div>
-          <div>
-            <h5 className="font-black text-sm mb-6">{t.product}</h5>
-            <ul className="text-xs text-gray-400 space-y-4 font-bold">
-              <li className="hover:text-white cursor-pointer transition">{t.features}</li>
-              <li className="hover:text-white cursor-pointer transition">{t.pricing}</li>
-              <li className="hover:text-white cursor-pointer transition">{t.security}</li>
-            </ul>
-          </div>
-          <div>
-            <h5 className="font-black text-sm mb-6">{t.company}</h5>
-            <ul className="text-xs text-gray-400 space-y-4 font-bold">
-              <li className="hover:text-white cursor-pointer transition">{t.about}</li>
-              <li className="hover:text-white cursor-pointer transition">{t.blog}</li>
-              <li className="hover:text-white cursor-pointer transition">{t.careers}</li>
-            </ul>
-          </div>
-          <div>
-            <h5 className="font-black text-sm mb-6">{t.support}</h5>
-            <ul className="text-xs text-gray-400 space-y-4 font-bold">
-              <li className="hover:text-white cursor-pointer transition">{t.helpCenter}</li>
-              <li className="hover:text-white cursor-pointer transition">{t.contact}</li>
-              <li className="hover:text-white cursor-pointer transition">{t.privacy}</li>
-            </ul>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto px-8 mt-16 pt-8 border-t border-gray-800 text-center text-[10px] text-gray-500 font-bold">
-          © 2026 SustainaPay. {t.rights}
-        </div>
-      </footer>
 
     </div>
   );

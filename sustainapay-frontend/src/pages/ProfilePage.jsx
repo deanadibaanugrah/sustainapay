@@ -3,87 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from "./LanguageContext";
 import { toast } from 'react-hot-toast';
 
-// --- KAMUS TERJEMAHAN UNTUK PROFILE PAGE ---
-const translations = {
-  en: {
-    home: "Home",
-    dashboard: "Dashboard",
-    transactions: "Transactions",
-    carbonImpact: "Carbon Impact",
-    recommendations: "Recommendations",
-    rewards: "Rewards",
-    profile: "Profile",
-    loading: "Loading...",
-    calculating: "Calculating...",
-    editProfile: "Edit Profile",
-    totalPoints: "Total Points",
-    co2Reduced: "CO2 Reduced",
-    impactRank: "Impact Rank",
-    personalInfo: "Personal Info",
-    fullName: "Full Name",
-    location: "Location",
-    joinedSince: "Joined Since",
-    locNotSet: "Location not set",
-    settings: "Settings",
-    notifSettings: "Notification Settings",
-    privacySecurity: "Privacy & Security",
-    logout: "Logout",
-    changeAvatar: "Change",
-    uploadGallery: "Upload from Gallery",
-    enterLoc: "Enter location manually...",
-    cancel: "Cancel",
-    saveChanges: "Save Changes",
-    alertSaveFail: "Failed to save profile to server.",
-    alertNetError: "Network error occurred.",
-    alertNoGps: "Your browser does not support GPS location.",
-    alertGpsFail: "Failed to get location. Ensure GPS is turned on.",
-    rights: "All rights reserved."
-  },
-  id: {
-    home: "Beranda",
-    dashboard: "Dasbor",
-    transactions: "Transaksi",
-    carbonImpact: "Dampak Karbon",
-    recommendations: "Rekomendasi",
-    rewards: "Hadiah",
-    profile: "Profil",
-    loading: "Memuat...",
-    calculating: "Menghitung...",
-    editProfile: "Edit Profil",
-    totalPoints: "Total Poin",
-    co2Reduced: "CO2 Dihemat",
-    impactRank: "Peringkat Dampak",
-    personalInfo: "Info Pribadi",
-    fullName: "Nama Lengkap",
-    location: "Lokasi",
-    joinedSince: "Bergabung Sejak",
-    locNotSet: "Lokasi belum diatur",
-    settings: "Pengaturan",
-    notifSettings: "Pengaturan Notifikasi",
-    privacySecurity: "Privasi & Keamanan",
-    logout: "Keluar",
-    changeAvatar: "Ubah",
-    uploadGallery: "Unggah dari Galeri",
-    enterLoc: "Masukkan lokasi manual...",
-    cancel: "Batal",
-    saveChanges: "Simpan Perubahan",
-    alertSaveFail: "Gagal menyimpan profil ke server.",
-    alertNetError: "Terjadi kesalahan jaringan.",
-    alertNoGps: "Browser kamu tidak mendukung fitur lokasi GPS.",
-    alertGpsFail: "Gagal mendapatkan lokasi. Pastikan GPS menyala.",
-    rights: "Hak cipta dilindungi."
-  }
-};
-
 const ProfilePage = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   
   // 1. Ambil state bahasa dari Context secara aman
   const contextData = useLanguage() || {};
+  const tContext = contextData.t || {};
+  const t = tContext.profile || {};
   const rawLang = contextData.language || contextData.lang || 'id';
   const safeLang = String(rawLang).toLowerCase() === 'en' ? 'en' : 'id';
-  const t = translations[safeLang];
 
   // State utama untuk menampilkan data user
   const [user, setUser] = useState({
@@ -360,9 +289,7 @@ const ProfilePage = () => {
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           
           <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition group">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#00A651] to-green-700 flex items-center justify-center rounded-xl shadow-lg shadow-green-200 group-hover:scale-105 transition-transform">
-              <span className="text-white font-black text-[10px] tracking-widest">LOGO</span>
-            </div>
+            <img src="/logo.jpg" alt="Logo" className="w-10 h-10 object-cover rounded-xl border border-green-700/40 shadow-md ring-2 ring-white/50 group-hover:scale-105 transition-transform" />
             <span className="font-black text-xl tracking-tight text-gray-900 hidden md:block">
               Sustaina<span className="text-[#00A651]">Pay</span>
             </span>
@@ -437,7 +364,7 @@ const ProfilePage = () => {
             </div>
 
             {/* QUICK STATS */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 pt-8 border-t border-gray-50">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 pt-8 border-t border-gray-50">
               <div className="text-center p-4 bg-[#F6FCF9] rounded-[2rem]">
                 <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{t.totalPoints}</p>
                 <p className="text-2xl font-black text-[#00A651]">{user.points} pts</p>
@@ -445,12 +372,6 @@ const ProfilePage = () => {
               <div className="text-center p-4 bg-[#F6FCF9] rounded-[2rem]">
                 <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{t.co2Reduced}</p>
                 <p className="text-2xl font-black text-gray-900">{user.carbonSaved}</p>
-              </div>
-              <div className="text-center p-4 bg-[#F6FCF9] rounded-[2rem]">
-                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{t.impactRank}</p>
-                <p className="text-2xl font-black text-blue-600">
-                  {user.impactRank === 'Calculating...' ? t.calculating : user.impactRank}
-                </p>
               </div>
             </div>
           </div>
@@ -514,11 +435,6 @@ const ProfilePage = () => {
       </main>
 
       {/* FOOTER */}
-      <footer className="bg-[#0B132B] text-white py-16 mt-16">
-        <div className="max-w-7xl mx-auto px-8 mt-16 pt-8 border-t border-gray-800 text-center text-[10px] text-gray-500 font-bold">
-          © 2026 SustainaPay. {t.rights}
-        </div>
-      </footer>
 
     </div>
   );

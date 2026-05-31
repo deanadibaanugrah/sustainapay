@@ -198,8 +198,8 @@ class TransactionController extends Controller
             // Potong saldo
             $user->decrement('wallet_balance', $request->amount);
             
-            // Hitung poin hadiah: setiap kelipatan Rp1000 mendapat 10 Poin
-            $earnedPoints = floor($request->amount / 1000) * 10;
+            // Hitung poin hadiah: setiap kelipatan Rp10000 mendapat 1 Poin
+            $earnedPoints = floor($request->amount / 10000);
             if ($earnedPoints > 0) {
                 $user->increment('reward_points', $earnedPoints);
             }
@@ -220,7 +220,7 @@ class TransactionController extends Controller
             
             // Jika teks AI yang dikirim frontend adalah fallback generik, panggil Gemini lagi
             if (!$aiText || str_contains($aiText, 'Pertimbangkan untuk mencoba carpooling atau transportasi publik lain kali') || str_contains($aiText, 'Pertimbangkan eco-driving')) {
-                $aiText = AiController::callOpenAI(
+                $aiText = AiController::callGemini(
                     $request->category ?? 'Transportasi',
                     $request->description ?? 'Perjalanan',
                     $request->distance_km ?? 10,
@@ -236,17 +236,14 @@ class TransactionController extends Controller
             ]);
 
             // 4. Simpan Riwayat Karbon & Tambah Poin Hadiah
-            if ($request->filled('distance_km') && $request->filled('emission_factor_id')) {
+            if ($request->filled('distance_km')) {
                 CarbonRecord::create([
                     'user_id' => $user->id,
                     'transaction_id' => $transaction->id,
-                    'emission_factor_id' => $request->emission_factor_id,
+                    'emission_factor_id' => $request->emission_factor_id ?? null,
                     'distance_km' => $request->distance_km,
                     'calculated_carbon_kg' => $request->total_emisi ?? 0,
                 ]);
-
-                // Tambahkan 10 Eco Points untuk setiap transaksi yang tercatat karbonnya
-                $user->increment('eco_points', 10);
             }
 
             return response()->json([
@@ -280,7 +277,7 @@ class TransactionController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         
-        $rawHistory = Transaction::with('carbonRecord.emissionFactor')
+        $rawHistory = Transaction::with('carbonRecord')
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -291,19 +288,17 @@ class TransactionController extends Controller
             $icon = '💳';
             $categoryName = $item->category;
 
-            if ($item->carbonRecord && $item->carbonRecord->emissionFactor) {
-                $vehicle = strtolower($item->carbonRecord->emissionFactor->vehicle_type);
-                if (str_contains($vehicle, 'car') || str_contains($vehicle, 'mobil')) {
-                    $icon = '🚗';
-                    $categoryName = 'Car';
-                } elseif (str_contains($vehicle, 'motor') || str_contains($vehicle, 'bike')) {
-                    $icon = '🏍️';
-                    $categoryName = 'Motorcycle';
-                } elseif (str_contains($vehicle, 'bus')) {
-                    $icon = '🚌';
-                    $categoryName = 'Bus';
-                }
-            } elseif ($item->category === 'Top Up') {
+            $catLower = strtolower($item->category);
+            if (str_contains($catLower, 'car') || str_contains($catLower, 'mobil')) {
+                $icon = '🚗';
+                $categoryName = 'Car';
+            } elseif (str_contains($catLower, 'motor') || str_contains($catLower, 'bike')) {
+                $icon = '🏍️';
+                $categoryName = 'Motorcycle';
+            } elseif (str_contains($catLower, 'bus')) {
+                $icon = '🚌';
+                $categoryName = 'Bus';
+            } elseif ($item->category === 'Top Up' || str_contains($catLower, 'top up')) {
                 $icon = '➕';
             }
 

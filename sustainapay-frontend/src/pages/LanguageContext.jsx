@@ -1,28 +1,33 @@
 import { createContext, useState, useContext } from 'react';
+import idLocale from '../locales/id.json';
+import enLocale from '../locales/en.json';
+
+// Buat dictionary yang menampung terjemahan json
+const translations = {
+  id: idLocale,
+  en: enLocale
+};
 
 // 1. Buat Context
-const LanguageContext = createContext();
+export const LanguageContext = createContext();
 
 // 2. Buat Provider untuk membungkus aplikasi
 export const LanguageProvider = ({ children }) => {
-  const [lang, setLang] = useState(() => {
-    const savedLang = localStorage.getItem('sustainapay_lang');
-    if (savedLang) {
-      return String(savedLang).toLowerCase();
-    }
-    return 'id';
-  });
+  const storedLang = localStorage.getItem('sustainapay_lang') || 'id';
+  const initialLang = String(storedLang).toLowerCase() === 'en' ? 'en' : 'id';
+  const [lang, setLang] = useState(initialLang);
 
   // Fungsi untuk mengubah bahasa dan menyimpannya
   const toggleLanguage = (selectedLang) => {
-    // MASTER FIX: Antisipasi kalau ada halaman (seperti Transactions) yang ngirim huruf besar 'ID' / 'EN'
-    const normalized = String(selectedLang || 'id').toLowerCase();
+    const normalized = String(selectedLang).toLowerCase() === 'en' ? 'en' : 'id';
     setLang(normalized);
     localStorage.setItem('sustainapay_lang', normalized);
   };
 
+  const t = translations[lang];
+
   return (
-    <LanguageContext.Provider value={{ lang, toggleLanguage }}>
+    <LanguageContext.Provider value={{ lang, toggleLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );

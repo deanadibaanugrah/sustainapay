@@ -24,31 +24,31 @@ class CarbonImpactController extends Controller
             ->sum('calculated_carbon_kg') ?? 0;
 
         // Breakdown Categories Bulanan
-        $monthQuery = Transaction::where('user_id', $user->id)
-            ->whereMonth('created_at', Carbon::now()->month)
-            ->whereYear('created_at', Carbon::now()->year);
+        $monthQuery = Transaction::where('transactions.user_id', $user->id)
+            ->whereMonth('transactions.created_at', Carbon::now()->month)
+            ->whereYear('transactions.created_at', Carbon::now()->year);
         $monthCategories = $this->getCategoryBreakdown($monthQuery, $thisMonthCarbon);
 
         // Breakdown Categories Tahunan
-        $yearQuery = Transaction::where('user_id', $user->id)
-            ->whereYear('created_at', Carbon::now()->year);
+        $yearQuery = Transaction::where('transactions.user_id', $user->id)
+            ->whereYear('transactions.created_at', Carbon::now()->year);
         $yearCategories = $this->getCategoryBreakdown($yearQuery, $thisYearCarbon);
 
         return response()->json([
             'status' => 'success',
             'data' => [
                 'Month' => [
-                    'total' => round($thisMonthCarbon, 1),
+                    'total' => round($thisMonthCarbon, 2),
                     'unit' => 'kg',
-                    'avg' => round($thisMonthCarbon, 1) . ' kg', 
+                    'avg' => round($thisMonthCarbon, 2) . ' kg', 
                     'trees' => floor($thisMonthCarbon / 21), 
                     'offset' => min(100, round(($thisMonthCarbon > 0 ? 5 / $thisMonthCarbon : 0) * 100)), 
                     'categories' => $monthCategories
                 ],
                 'Year' => [
-                    'total' => round($thisYearCarbon, 1),
+                    'total' => round($thisYearCarbon, 2),
                     'unit' => 'kg',
-                    'avg' => round($thisYearCarbon / max(1, Carbon::now()->month), 1) . ' kg',
+                    'avg' => round($thisYearCarbon / max(1, Carbon::now()->month), 2) . ' kg',
                     'trees' => floor($thisYearCarbon / 21),
                     'offset' => min(100, round(($thisYearCarbon > 0 ? 50 / $thisYearCarbon : 0) * 100)),
                     'categories' => $yearCategories
@@ -59,82 +59,60 @@ class CarbonImpactController extends Controller
 
     private function getCategoryBreakdown($queryBuilder, $totalCarbon)
     {
-        $breakdown = $queryBuilder->selectRaw('category, sum(total_emisi) as total')
-            ->where('category', '!=', 'topup')
-            ->where('total_emisi', '>', 0)
-            ->groupBy('category')
+        $breakdown = $queryBuilder->join('carbon_records', 'transactions.id', '=', 'carbon_records.transaction_id')
+            ->selectRaw('transactions.category, sum(carbon_records.calculated_carbon_kg) as total')
+            ->where('transactions.category', '!=', 'Top Up')
+            ->where('carbon_records.calculated_carbon_kg', '>', 0)
+            ->groupBy('transactions.category')
             ->get();
 
-        $categories = [];
-        $colors = [
-            'motorcycle' => 'bg-green-500',
-            'motor' => 'bg-green-500',
-            'car' => 'bg-blue-500',
-            'mobil' => 'bg-blue-500',
-            'bus' => 'bg-yellow-500',
-            'public transport' => 'bg-purple-500',
-            'train' => 'bg-purple-500',
-            'kereta' => 'bg-purple-500',
-            'taxi' => 'bg-pink-500',
-            'taksi' => 'bg-pink-500',
-        ];
-        
-        $icons = [
-            'motorcycle' => '🏍️',
-            'motor' => '🏍️',
-            'car' => '🚗',
-            'mobil' => '🚗',
-            'bus' => '🚌',
-            'public transport' => '🚆',
-            'train' => '🚆',
-            'kereta' => '🚆',
-            'taxi' => '🚕',
-            'taksi' => '🚕',
+        $categories = [
+            'Motorcycle' => [
+                'name' => 'Motorcycle',
+                'icon' => '🏍️',
+                'value' => 0,
+                'color' => 'bg-green-500',
+                'amount' => '0 kg'
+            ],
+            'Car' => [
+                'name' => 'Car',
+                'icon' => '🚗',
+                'value' => 0,
+                'color' => 'bg-blue-500',
+                'amount' => '0 kg'
+            ],
+            'Public Transport' => [
+                'name' => 'Public Transport',
+                'icon' => '🚆',
+                'value' => 0,
+                'color' => 'bg-purple-500',
+                'amount' => '0 kg'
+            ]
         ];
 
         foreach ($breakdown as $item) {
             $catLower = strtolower($item->category);
             $percentage = $totalCarbon > 0 ? round(($item->total / $totalCarbon) * 100) : 0;
             
-            $categories[] = [
-                'name' => ucfirst($item->category),
-                'icon' => $icons[$catLower] ?? '🚗',
-                'value' => $percentage,
-                'color' => $colors[$catLower] ?? 'bg-gray-500',
-                'amount' => round($item->total, 1) . ' kg'
-            ];
+            $bucketKey = 'Car';
+            if (str_contains($catLower, 'motor')) {
+                $bucketKey = 'Motorcycle';
+            } elseif (str_contains($catLower, 'bus') || str_contains($catLower, 'train') || str_contains($catLower, 'public') || str_contains($catLower, 'kereta')) {
+                $bucketKey = 'Public Transport';
+            }
+
+            $categories[$bucketKey]['value'] += $percentage;
+            
+            $currentTotalFloat = floatval(str_replace(' kg', '', $categories[$bucketKey]['amount']));
+            $newTotalFloat = $currentTotalFloat + round($item->total, 2);
+            $categories[$bucketKey]['amount'] = $newTotalFloat . ' kg';
         }
 
-        usort($categories, function($a, $b) {
+        $result = array_values($categories);
+        usort($result, function($a, $b) {
             return $b['value'] <=> $a['value'];
         });
 
-        if (empty($categories)) {
-            $categories = [
-                [
-                    'name' => 'Motorcycle',
-                    'icon' => '🏍️',
-                    'value' => 0,
-                    'color' => 'bg-green-500',
-                    'amount' => '0 kg'
-                ],
-                [
-                    'name' => 'Car',
-                    'icon' => '🚗',
-                    'value' => 0,
-                    'color' => 'bg-blue-500',
-                    'amount' => '0 kg'
-                ],
-                [
-                    'name' => 'Public Transport',
-                    'icon' => '🚆',
-                    'value' => 0,
-                    'color' => 'bg-purple-500',
-                    'amount' => '0 kg'
-                ]
-            ];
-        }
-
-        return $categories;
+        return $result;
     }
 }

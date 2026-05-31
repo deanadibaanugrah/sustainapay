@@ -6,8 +6,10 @@ import { toast } from 'react-hot-toast';
 
 const Transactions = () => {
   const contextData = useLanguage() || {};
-  const activeLang = contextData.language || contextData.lang || 'ID'; 
-  const safeLang = String(activeLang).toUpperCase() === 'EN' ? 'EN' : 'ID';
+  const tContext = contextData.t || {};
+  const t = tContext.transactions || {};
+
+  const filters = ['All', 'Motorcycle', 'Car', 'Bus', 'Public Transport', 'Top Up'];
   const [activeFilter, setActiveFilter] = useState('All');
   const [navUser] = useState(() => {
     const storedUser = localStorage.getItem('user');
@@ -45,22 +47,6 @@ const Transactions = () => {
   const [passwordError, setPasswordError] = useState('');
   const [transactions, setTransactions] = useState([]);
 
-  const t = {
-    ID: {
-      navHome: "Beranda", navDashboard: "Dasbor", navTransactions: "Transaksi", navCarbon: "Dampak Karbon", navRec: "Rekomendasi", navRewards: "Hadiah", navProfile: "Profil",
-      title: "Riwayat Transaksi", subtitle: "Pantau pengeluaran Anda dan dampak lingkungannya secara berkala", scanBtn: "Scan QR / Input", balanceTitle: "Saldo E-Wallet SustainaPay", topupBtn: "Top Up Saldo", amountLabel: "Jumlah", carbonLabel: "Karbon", latestLabel: "Terbaru", noTransactionsTitle: "Tidak ada transaksi ditemukan", noTransactionsDesc: "Belum ada data transaksi di kategori ini.",
-      filters: { All: "Semua", Motorcycle: "Motor", Car: "Mobil", Bus: "Bus", "Public Transport": "Angkutan Umum", "Top Up": "Top Up" },
-      topupHeader: "Top Up Saldo", topupSub: "Pilih bank atau e-wallet untuk top up.", paymentMethod: "METODE PEMBAYARAN", topupNominal: "NOMINAL TOP UP (RP)", confirmTopup: "Konfirmasi Top Up", scanHeader: "Scan QR Trip", scanSub: "Arahkan kamera ke QR perjalanan atau input manual.", cancelScan: "Batal Scan", openCamera: "Buka Kamera Scan QR", orManual: "ATAU INPUT MANUAL", provider: "Provider / App", category: "Kategori", recipientLabel: "Penerima / ID Driver", distanceLabel: "Jarak Tempuh (KM)", costLabel: "Total Biaya Tagihan (RP)", btnAnalyze: "Analisis Carbon & Lanjut Bayar", loadingHeader: "Menghubungi Server...", loadingSub: "Memproses data payload & menghitung jejak karbon", payHeader: "Detail Pembayaran", paySub: "Review transaksi menggunakan SustainaPay.", service: "Layanan", distance: "Jarak Tempuh", deductBalance: "Potong Saldo Wallet", pinLabel: "PIN SUSTAINAPAY (123456)", btnPay: "Bayar Sekarang", successHeader: "Pembayaran Berhasil!", remainingBalance: "Sisa Saldo", aiInsights: "Sustaina-AI Insights", btnFinish: "Selesai"
-    },
-    EN: {
-      navHome: "Home", navDashboard: "Dashboard", navTransactions: "Transactions", navCarbon: "Carbon Impact", navRec: "Recommendations", navRewards: "Rewards", navProfile: "Profile",
-      title: "Transaction History", subtitle: "Track your spending and its environmental impact", scanBtn: "Scan QR / Input", balanceTitle: "SustainaPay E-Wallet Balance", topupBtn: "Top Up Balance", amountLabel: "Amount", carbonLabel: "Carbon", latestLabel: "Latest", noTransactionsTitle: "No transactions found", noTransactionsDesc: "No transaction data in this category.",
-      filters: { All: "All", Motorcycle: "Motorcycle", Car: "Car", Bus: "Bus", "Public Transport": "Public Transport", "Top Up": "Top Up" },
-      topupHeader: "Top Up Balance", topupSub: "Select a bank or e-wallet to top up.", paymentMethod: "PAYMENT METHOD", topupNominal: "TOP UP NOMINAL (RP)", confirmTopup: "Confirm Top Up", scanHeader: "Scan QR Trip", scanSub: "Point the camera at the trip QR or input manually.", cancelScan: "Cancel Scan", openCamera: "Open QR Scanner Camera", orManual: "OR MANUAL INPUT", provider: "Provider / App", category: "Category", recipientLabel: "Recipient / Driver ID", distanceLabel: "Distance (KM)", costLabel: "Total Bill Cost (RP)", btnAnalyze: "Analyze Carbon & Proceed to Pay", loadingHeader: "Connecting to Server...", loadingSub: "Processing payload data & calculating carbon footprint", payHeader: "Payment Details", paySub: "Review transaction using SustainaPay.", service: "Service", distance: "Distance", deductBalance: "Deduct Wallet Balance", pinLabel: "SUSTAINAPAY PIN (123456)", btnPay: "Pay Now", successHeader: "Payment Successful!", remainingBalance: "Remaining Balance", aiInsights: "Sustaina-AI Insights", btnFinish: "Finish"
-    }
-  }[safeLang];
-
-  const filters = ['All', 'Motorcycle', 'Car', 'Bus', 'Public Transport', 'Top Up'];
   const filteredTransactions = activeFilter === 'All' ? transactions : transactions.filter(t => t.category === activeFilter);
 
   const fetchUserBalance = async () => {
@@ -221,7 +207,7 @@ const Transactions = () => {
       
       const payResult = await response.json();
 
-      // Jika backend mengembalikan ai_text (dari Gemini), update scannedData
+      // Jika backend mengembalikan ai_text, update scannedData
       if (payResult.ai_text) {
         setScannedData(prev => ({ ...prev, recommendation: payResult.ai_text }));
       }
@@ -307,9 +293,7 @@ const Transactions = () => {
       <nav className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition group">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#00A651] to-green-700 flex items-center justify-center rounded-xl shadow-lg shadow-green-200 group-hover:scale-105 transition-transform">
-              <span className="text-white font-black text-[10px] tracking-widest">LOGO</span>
-            </div>
+            <img src="/logo.jpg" alt="Logo" className="w-10 h-10 object-cover rounded-xl border border-green-700/40 shadow-md ring-2 ring-white/50 group-hover:scale-105 transition-transform" />
             <span className="font-black text-xl tracking-tight text-gray-900 hidden md:block">Sustaina<span className="text-[#00A651]">Pay</span></span>
           </Link>
           <div className="hidden lg:flex items-center gap-1 bg-gray-50/80 border border-gray-100 p-1.5 rounded-full shadow-inner">
@@ -387,7 +371,12 @@ const Transactions = () => {
                       <div className="text-left md:text-right">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">{t.carbonLabel}</p>
                         <div className="flex items-center gap-2">
-                          <p className="font-black text-gray-900">{item.carbon || (item.calculated_carbon_kg ? `${item.calculated_carbon_kg} kg` : '-')}</p>
+                          <p className="font-black text-gray-900">
+                            {(() => {
+                              const carbonText = item.carbon || (item.calculated_carbon_kg ? `${item.calculated_carbon_kg} kg` : '-');
+                              return carbonText === '0 kg' || carbonText === '0.0 kg' ? '-' : carbonText;
+                            })()}
+                          </p>
                           <span className={`w-2 h-2 rounded-full ${item.impact === 'low' ? 'bg-green-500' : item.impact === 'medium' ? 'bg-yellow-500' : item.impact === 'high' ? 'bg-red-500' : 'bg-gray-300'}`}></span>
                         </div>
                       </div>
@@ -513,6 +502,14 @@ const Transactions = () => {
                     <span className="text-xs font-bold text-gray-400 uppercase">{t.carbonLabel}</span>
                     <span className="font-black text-red-500">{scannedData.carbon} kg CO2</span>
                   </div>
+                  {Math.floor(parseInt(scannedData.cost) / 10000) > 0 && (
+                    <div className="flex justify-between items-center pb-2 border-b border-gray-200/60">
+                      <span className="text-xs font-bold text-gray-400 uppercase">{t.pointsEarned}</span>
+                      <span className="font-black text-yellow-500 flex items-center gap-1">
+                        <span>✨</span> +{Math.floor(parseInt(scannedData.cost) / 10000)} Reward Points
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-gray-400 uppercase">{t.deductBalance}</span>
                     <span className="font-black text-[#00A651]">Rp {parseInt(scannedData.cost).toLocaleString('id-ID')}</span>
@@ -544,9 +541,14 @@ const Transactions = () => {
                   ✅
                 </div>
                 <h2 className="text-2xl font-black text-gray-900 mb-2">{t.successHeader}</h2>
-                <p className="text-sm text-gray-500 font-bold mb-6">
+                <p className="text-sm text-gray-500 font-bold mb-4">
                   {t.remainingBalance}: <span className="text-gray-900">Rp {Number(balance).toLocaleString('id-ID')}</span>
                 </p>
+                {scannedData?.cost && Math.floor(parseInt(scannedData.cost) / 10000) > 0 && (
+                  <div className="bg-yellow-50 text-yellow-600 font-bold text-sm rounded-xl p-3 mb-6 flex justify-center items-center gap-2">
+                    <span>✨</span> Selamat! Kamu mendapatkan +{Math.floor(parseInt(scannedData.cost) / 10000)} Reward Points!
+                  </div>
+                )}
 
                 {scannedData?.recommendation && (
                   <div className="bg-[#F6FCF9] border border-green-100 rounded-2xl p-4 text-left mb-6 relative overflow-hidden">
@@ -554,9 +556,25 @@ const Transactions = () => {
                     <h4 className="text-xs font-black text-green-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                       <span>✨</span> {t.aiInsights}
                     </h4>
-                    <p className="text-sm font-bold text-gray-700 relative z-10 leading-relaxed">
-                      {scannedData.recommendation}
-                    </p>
+                    <div className="text-sm font-bold text-gray-700 relative z-10 leading-relaxed">
+                      {(() => {
+                        const text = scannedData.recommendation || "";
+                        if (text.startsWith('⚠️')) {
+                          const dotIndex = text.indexOf('. ', text.indexOf('sekitar'));
+                          if (dotIndex !== -1) {
+                            const warningPart = text.substring(0, dotIndex + 2);
+                            const normalPart = text.substring(dotIndex + 2);
+                            return (
+                              <>
+                                <span className="text-orange-600 block mb-2">{warningPart.trim()}</span>
+                                <span>{normalPart}</span>
+                              </>
+                            );
+                          }
+                        }
+                        return <p>{text}</p>;
+                      })()}
+                    </div>
                   </div>
                 )}
 

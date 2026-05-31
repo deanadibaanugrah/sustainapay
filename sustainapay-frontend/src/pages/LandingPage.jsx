@@ -2,53 +2,16 @@ import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from "./LanguageContext";
 
-const TRANSLATIONS = {
-  en: {
-    navLogin: 'Sign In', navApp: 'Dashboard',
-    heroTitle1: 'Your Digital Wallet', heroTitle2: 'for a', heroTitle3: 'Sustainable Future',
-    heroDesc: 'Join SustainaPay to track your carbon footprint with every transaction. Make a positive impact on the environment while managing your finances effortlessly.',
-    btnStart: 'Get Started', btnContinue: 'Continue to App', btnLearn: 'Learn More',
-    statUsers: 'Active Users', statTrans: 'Transactions', statCo2: 'CO2 Tracked',
-    tabAbout: 'What is It?', tabFlow: 'How It Works',
-    aboutTitle: 'What is SustainaPay?',
-    aboutDesc: "SustainaPay is an e-wallet web platform that functions not only as a digital transaction tool but also features carbon footprint calculation for every transaction. Our primary goal is to increase user awareness of the environmental impact of daily activities, particularly transportation. We have chosen highly accurate emission data by referencing Jejakin a trusted platform in carbon calculation.",
-    flowTitle: 'How It Works', flowSub: 'Click each step below to reveal or hide the details!',
-    steps: [
-      { title: 'Transact', desc: 'Use SustainaPay for your daily expenses, especially for your daily transportation needs.', icon: '💳' },
-      { title: 'Calculate', desc: 'The system automatically calculates your carbon footprint with high accuracy via Jejakin database.', icon: '⚙️' },
-      { title: 'Monitor', desc: 'Track your emission history and set green targets on your personal interactive dashboard.', icon: '📊' },
-      { title: 'Earn Rewards', desc: 'Reduce emissions to earn eco-points and redeem them for ecological rewards like planting trees.', icon: '🌳' }
-    ]
-  },
-  id: {
-    navLogin: 'Masuk', navApp: 'Dasbor',
-    heroTitle1: 'Dompet Digital Anda', heroTitle2: 'untuk', heroTitle3: 'Masa Depan Berkelanjutan',
-    heroDesc: 'Bergabunglah dengan SustainaPay untuk melacak jejak karbon dari setiap transaksi. Berikan dampak positif pada lingkungan sambil mengelola keuangan Anda dengan presisi tinggi.',
-    btnStart: 'Mulai Sekarang', btnContinue: 'Lanjut ke Aplikasi', btnLearn: 'Pelajari Lanjut',
-    statUsers: 'Pengguna Aktif', statTrans: 'Transaksi', statCo2: 'CO2 Terlacak',
-    tabAbout: 'Apa Itu?', tabFlow: 'Cara Kerja',
-    aboutTitle: 'Apa itu SustainaPay?',
-    aboutDesc: "SustainaPay merupakan pengembangan web e-wallet yang tidak hanya berfungsi sebagai alat transaksi digital, tetapi juga memiliki fitur perhitungan jejak karbon dari setiap transaksi pengguna. Tujuan utama platform ini adalah meningkatkan kesadaran pengguna terhadap dampak lingkungan yang dihasilkan dari aktivitas sehari-hari (khususnya penggunaan transportasi). Data emisi karbon yang kami gunakan didasarkan pada perhitungan dari sumber terpercaya, Jejakin.",
-    flowTitle: 'Cara Kerja Kami', flowSub: 'Klik setiap langkah di bawah untuk membuka atau menutup detail!',
-    steps: [
-      { title: 'Transaksi', desc: 'Gunakan SustainaPay untuk pembayaran harian Anda, terutama untuk kebutuhan transportasi.', icon: '💳' },
-      { title: 'Kalkulasi', desc: 'Sistem akan menghitung jejak karbon Anda secara otomatis berdasarkan basis data Jejakin.', icon: '⚙️' },
-      { title: 'Pantau', desc: 'Lacak riwayat emisi Anda dan pasang target hijau langsung dari dasbor interaktif.', icon: '📊' },
-      { title: 'Dapat Reward', desc: 'Raih poin ekologis dari emisi yang ditekan untuk ditukar dengan donasi penanaman pohon.', icon: '🌳' }
-    ]
-  }
-};
-
 const LandingPage = () => {
   const [isLoggedIn] = useState(() => localStorage.getItem('token') ? true : false);
-  const { lang, toggleLanguage: setGlobalLang } = useLanguage(); 
+  const { lang, toggleLanguage: setGlobalLang, t } = useLanguage(); 
   
   // State untuk Interaksi Tab & Accordion
   const [activeTab, setActiveTab] = useState('about'); 
   const [activeStep, setActiveStep] = useState(null); 
   
   const rightColumnRef = useRef(null);
-  const text = TRANSLATIONS[lang] || TRANSLATIONS['id'];
+  const text = t.landing;
 
 
   return (
@@ -62,7 +25,7 @@ const LandingPage = () => {
       {/* NAVBAR */}
       <nav className="relative z-20 flex justify-between items-center py-6 px-8 max-w-7xl mx-auto w-full bg-white/80 border border-white/40 mt-4 rounded-3xl shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-green-800 rounded-xl flex items-center justify-center text-white font-black text-[8px] shadow-md">LOGO</div>
+          <img src="/logo.jpg" alt="Logo" className="w-10 h-10 object-cover rounded-xl border border-green-700/40 shadow-md ring-2 ring-white/50 shadow-md" />
           <span className="font-bold text-xl text-green-800 hidden sm:block">SustainaPay</span>
         </div>
         
@@ -211,7 +174,7 @@ const LandingPage = () => {
       <footer className="bg-green-950 py-6 px-8 text-center text-green-200 mt-auto relative z-20 w-full">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-green-800 rounded-lg flex items-center justify-center text-white font-black text-[8px]">LOGO</div>
+            <img src="/logo.jpg" alt="Logo" className="w-8 h-8 object-cover rounded-lg border border-green-700/40 shadow-sm ring-1 ring-white/50" />
             <span className="font-bold text-white text-sm">SustainaPay</span>
           </div>
           <p className="text-xs font-medium opacity-80">&copy; 2026 SustainaPay. Hak Cipta Dilindungi. Data didukung oleh Jejakin.</p>
