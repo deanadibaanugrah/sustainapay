@@ -133,7 +133,7 @@ const LandingPage = () => {
                       <div 
                         key={index} 
                         onClick={() => setActiveStep(isActive ? null : index)}
-                        className={`group cursor-pointer rounded-2xl border transition-all duration-300 overflow-hidden ${isActive ? 'bg-[#F8FCFA] border-[#00A651] shadow-md' : 'bg-white border-gray-100 hover:border-green-300 hover:bg-green-50/30'}`}
+                        className={`group shrink-0 cursor-pointer rounded-2xl border transition-all duration-300 overflow-hidden ${isActive ? 'bg-[#F8FCFA] border-[#00A651] shadow-md' : 'bg-white border-gray-100 hover:border-green-300 hover:bg-green-50/30'}`}
                       >
                         {/* Header Step */}
                         <div className="flex items-center justify-between p-4 relative z-10">
