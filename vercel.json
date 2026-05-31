@@ -1,0 +1,10 @@
+{
+  "buildCommand": "cd sustainapay-frontend && npm install && npm run build",
+  "outputDirectory": "sustainapay-frontend/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
