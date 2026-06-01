@@ -362,7 +362,7 @@ const AdminDashboard = () => {
             <div className="flex items-center gap-3 cursor-pointer group">
               <div className="text-right hidden md:block">
                 <p className="text-sm font-bold text-gray-800 group-hover:text-[#00A651] transition">Admin User</p>
-                <p className="text-xs text-gray-500 font-medium">Super Admin</p>
+                <p className="text-xs text-gray-500 font-medium">Admin</p>
               </div>
               <div className="w-10 h-10 bg-gray-900 text-white rounded-full flex items-center justify-center font-bold shadow-md">
                 AU
