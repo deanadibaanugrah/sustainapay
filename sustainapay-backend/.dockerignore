@@ -1,0 +1,14 @@
+.git
+node_modules
+vendor
+.env
+.env.backup
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+tests
+phpunit.xml
+.phpunit.result.cache
+serveo_log.txt
+pinggy_log.txt
