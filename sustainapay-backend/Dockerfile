@@ -23,9 +23,9 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.
 # Allow .htaccess overrides
 RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 
-# Configure Apache to listen on port 10000 (Render default)
-RUN sed -i 's/Listen 80/Listen 10000/' /etc/apache2/ports.conf
-RUN sed -i 's/:80/:10000/' /etc/apache2/sites-available/000-default.conf
+# Configure Apache to listen on port 8000 (Koyeb default)
+RUN sed -i 's/Listen 80/Listen 8000/' /etc/apache2/ports.conf
+RUN sed -i 's/:80/:8000/' /etc/apache2/sites-available/000-default.conf
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -57,6 +57,6 @@ php artisan migrate --force\n\
 apache2-foreground' > /usr/local/bin/start.sh \
     && chmod +x /usr/local/bin/start.sh
 
-EXPOSE 10000
+EXPOSE 8000
 
 CMD ["/usr/local/bin/start.sh"]
