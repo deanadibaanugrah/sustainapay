@@ -14,6 +14,14 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
+        $existingUser = User::withTrashed()->where('email', $request->email)->first();
+        if ($existingUser && $existingUser->trashed()) {
+            return response()->json([
+                'message' => 'Akun Anda telah dinonaktifkan/dihapus oleh Admin',
+                'errors' => ['email' => ['Email ini telah diblokir.']]
+            ], 403);
+        }
+
         $request->validate([
             'name' => 'required|string',
             'email' => 'required|email|unique:users',
