@@ -42,7 +42,11 @@ class AuthController extends Controller
         ]);
 
         /** @var \App\Models\User $user */
-        $user = User::where('email', $request->email)->first();
+        $user = User::withTrashed()->where('email', $request->email)->first();
+
+        if ($user && $user->trashed()) {
+            return response()->json(['message' => 'Akun Anda telah dinonaktifkan/dihapus oleh Admin'], 403);
+        }
 
         // Check password manually since we are using plain text
         if (!$user || $user->password !== $request->password) {
@@ -152,7 +156,11 @@ class AuthController extends Controller
             }
 
             /** @var \App\Models\User $user */
-            $user = User::where('email', $email)->first();
+            $user = User::withTrashed()->where('email', $email)->first();
+
+            if ($user && $user->trashed()) {
+                return response()->json(['message' => 'Akun Anda telah dinonaktifkan/dihapus oleh Admin'], 403);
+            }
 
             if ($user) {
                 // Update google_id if not set
