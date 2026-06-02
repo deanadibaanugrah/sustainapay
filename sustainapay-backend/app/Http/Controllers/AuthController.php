@@ -11,35 +11,23 @@ class AuthController extends Controller
 {
     /**
      * Registrasi User Baru
+     */
     public function register(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string',
-            'email' => 'required|email',
-            'password' => 'required|min:6'
-        ]);
-
         $existingUser = User::withTrashed()->where('email', $request->email)->first();
         
-        if ($existingUser) {
-            if ($existingUser->trashed()) {
-                // Restore the soft-deleted user and update their password
-                $existingUser->restore();
-                $existingUser->name = $request->name;
-                $existingUser->password = $request->password;
-                $existingUser->save();
-
-                return response()->json([
-                    'message' => 'Akun Anda telah berhasil dipulihkan',
-                    'token' => $existingUser->createToken('auth_token')->plainTextToken
-                ]);
-            } else {
-                return response()->json([
-                    'message' => 'Email ini sudah terdaftar.',
-                    'errors' => ['email' => ['Email ini sudah terdaftar.']]
-                ], 422);
-            }
+        if ($existingUser && $existingUser->trashed()) {
+            return response()->json([
+                'message' => 'Akun Anda telah dinonaktifkan/dihapus oleh Admin',
+                'errors' => ['email' => ['Email ini telah diblokir.']]
+            ], 403);
         }
+
+        $request->validate([
+            'name' => 'required|string',
+            'email' => 'required|email|unique:users',
+            'password' => 'required|min:6'
+        ]);
 
         /** @var \App\Models\User $user */
         $user = User::create([
@@ -66,8 +54,7 @@ class AuthController extends Controller
         $user = User::withTrashed()->where('email', $request->email)->first();
 
         if ($user && $user->trashed()) {
-            // Restore account instead of blocking
-            $user->restore();
+            return response()->json(['message' => 'Akun Anda telah dinonaktifkan/dihapus oleh Admin'], 403);
         }
 
         // Check password manually since we are using plain text
@@ -137,9 +124,6 @@ class AuthController extends Controller
         if ($user) {
             // Menghapus token yang sedang digunakan saat ini saja
             $user->currentAccessToken()->delete();
-            
-            // Note: Jika ingin menghapus SEMUA token (logout dari semua perangkat), gunakan:
-            // $user->tokens()->delete();
         }
 
         return response()->json(['message' => 'Berhasil Logout']);
@@ -155,9 +139,6 @@ class AuthController extends Controller
         ]);
 
         try {
-            // Frontend sends an OAuth access_token via useGoogleLogin(),
-            // so we verify it by calling Google's userinfo endpoint.
-            // withoutVerifying() bypasses SSL cert check for local dev on Windows.
             $response = \Illuminate\Support\Facades\Http::withoutVerifying()
                 ->get('https://www.googleapis.com/oauth2/v3/userinfo', [
                     'access_token' => $request->token
@@ -181,8 +162,7 @@ class AuthController extends Controller
             $user = User::withTrashed()->where('email', $email)->first();
 
             if ($user && $user->trashed()) {
-                // Restore account instead of blocking
-                $user->restore();
+                return response()->json(['message' => 'Akun Anda telah dinonaktifkan/dihapus oleh Admin'], 403);
             }
 
             if ($user) {
