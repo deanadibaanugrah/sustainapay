@@ -40,7 +40,7 @@ const ProfilePage = () => {
       return;
     }
 
-    fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/user`, {
+    fetch(`${import.meta.env.VITE_BACKEND_URL || (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000')}/api/user`, {
       headers: { 
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json'
@@ -99,7 +99,7 @@ const ProfilePage = () => {
 
     try {
       // Mengubah method jadi POST sesuai dengan route api.php milikmu
-      const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/user/update`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000')}/api/user/update`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

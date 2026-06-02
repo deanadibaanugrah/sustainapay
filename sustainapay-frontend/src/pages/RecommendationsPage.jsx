@@ -36,7 +36,7 @@ const RecommendationsPage = () => {
       if (!token) { navigate('/login'); return; }
 
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/ai/recommendations`, { 
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000')}/api/ai/recommendations`, { 
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
         });

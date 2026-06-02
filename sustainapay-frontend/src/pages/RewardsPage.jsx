@@ -60,7 +60,7 @@ const RewardsPage = () => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/rewards`, {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'}/api/rewards`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const result = await res.json();
@@ -101,7 +101,7 @@ const RewardsPage = () => {
     if (userPoints >= item.cost && checkTier(item.tier_required)) {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/rewards/redeem`, {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'}/api/rewards/redeem`, {
           method: 'POST',
           headers: { 
             'Authorization': `Bearer ${token}`,

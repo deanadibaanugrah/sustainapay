@@ -64,15 +64,15 @@ const AdminDashboard = () => {
   const fetchAllData = () => {
     const token = localStorage.getItem('token'); 
 
-    const fetchDashboard = axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/admin/dashboard`, {
+    const fetchDashboard = axios.get(`${import.meta.env.VITE_BACKEND_URL || (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000')}/api/admin/dashboard`, {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
     });
 
-    const fetchUsers = axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/admin/users`, {
+    const fetchUsers = axios.get(`${import.meta.env.VITE_BACKEND_URL || (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000')}/api/admin/users`, {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
     });
 
-    const fetchVouchers = axios.get(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/admin/vouchers`, {
+    const fetchVouchers = axios.get(`${import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'}/api/admin/vouchers`, {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
     });
 
@@ -116,7 +116,7 @@ const AdminDashboard = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/admin/users/${editingUserId}`, editForm, {
+      await axios.put(`${import.meta.env.VITE_BACKEND_URL || (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000')}/api/admin/users/${editingUserId}`, editForm, {
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
       
@@ -141,7 +141,7 @@ const AdminDashboard = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/admin/users/${userToDelete.id}`, {
+      await axios.delete(`${import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'}/api/admin/users/${userToDelete.id}`, {
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
       
@@ -172,7 +172,7 @@ const AdminDashboard = () => {
     
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/admin/users/${selectedUserForPoints.id}/points`, pointsForm, {
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'}/api/admin/users/${selectedUserForPoints.id}/points`, pointsForm, {
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
       
@@ -223,12 +223,12 @@ const AdminDashboard = () => {
 
       if (editingVoucherId) {
         formData.append('_method', 'PUT');
-        await axios.post(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/admin/vouchers/${editingVoucherId}`, formData, {
+        await axios.post(`${import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'}/api/admin/vouchers/${editingVoucherId}`, formData, {
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
         });
         toast.success(t.toastVchUpdate || 'Voucher diperbarui!');
       } else {
-        await axios.post(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/admin/vouchers`, formData, {
+        await axios.post(`${import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'}/api/admin/vouchers`, formData, {
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
         });
         toast.success(t.toastVchAdd || 'Voucher ditambahkan!');
@@ -244,7 +244,7 @@ const AdminDashboard = () => {
     if (!voucherToDelete) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/admin/vouchers/${voucherToDelete.id}`, {
+      await axios.delete(`${import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'}/api/admin/vouchers/${voucherToDelete.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       toast.success(t.toastVchDel || 'Voucher dihapus!');

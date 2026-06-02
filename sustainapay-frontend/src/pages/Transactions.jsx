@@ -51,7 +51,7 @@ const Transactions = () => {
 
   const fetchUserBalance = async () => {
     try {
-      const userResponse = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/user`, {
+      const userResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL || (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000')}/api/user`, {
         method: 'GET', 
         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
@@ -76,7 +76,7 @@ const Transactions = () => {
 
   const fetchTransactions = async () => {
     try {
-      const historyResponse = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/transactions/history`, {
+      const historyResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL || (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000')}/api/transactions/history`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -114,7 +114,7 @@ const Transactions = () => {
     if (!text) return;
     setIsScanning(false); setModalStep('LOADING_AI'); 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/process-qr`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000')}/api/process-qr`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}`},
         body: JSON.stringify({ qr_payload: text }) 
@@ -147,7 +147,7 @@ const Transactions = () => {
     if (!scanRecipient || !scanDistance || !scanCost) { toast.error("Harap isi penerima, jarak tempuh, dan biaya!"); return; }
     setModalStep('LOADING_AI'); 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/ai/recommendations/generate`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000')}/api/ai/recommendations/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
         body: JSON.stringify({ provider: scanProvider, category: scanCategory, distance: parseFloat(scanDistance), cost: parseFloat(scanCost) })
@@ -186,7 +186,7 @@ const Transactions = () => {
     if (balance < costInt) { toast.error('Saldo SustainaPay tidak mencukupi! Silakan Top Up.'); return; }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/transactions/payment`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000')}/api/transactions/payment`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -230,7 +230,7 @@ const Transactions = () => {
     
     setIsTopupLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/transactions/topup`, { 
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000')}/api/transactions/topup`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
         body: JSON.stringify({ amount: parseInt(topupAmount) })
@@ -241,7 +241,7 @@ const Transactions = () => {
         window.snap.pay(data.token, {
           onSuccess: async function() { 
             try {
-              await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/transactions/direct-topup`, {
+              await fetch(`${import.meta.env.VITE_BACKEND_URL || (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000')}/api/transactions/direct-topup`, {
                 method: 'POST',
                 headers: { 
                   'Content-Type': 'application/json', 

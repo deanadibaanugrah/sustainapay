@@ -60,7 +60,7 @@ const CarbonImpact = () => {
     const fetchCarbonImpact = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000')}/api/carbon-impact`, {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000')}/api/carbon-impact`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const result = await res.json();
