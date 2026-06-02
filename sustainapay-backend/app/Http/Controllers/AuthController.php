@@ -11,22 +11,35 @@ class AuthController extends Controller
 {
     /**
      * Registrasi User Baru
-     */
     public function register(Request $request)
     {
-        $existingUser = User::withTrashed()->where('email', $request->email)->first();
-        if ($existingUser && $existingUser->trashed()) {
-            return response()->json([
-                'message' => 'Akun Anda telah dinonaktifkan/dihapus oleh Admin',
-                'errors' => ['email' => ['Email ini telah diblokir.']]
-            ], 403);
-        }
-
         $request->validate([
             'name' => 'required|string',
-            'email' => 'required|email|unique:users',
+            'email' => 'required|email',
             'password' => 'required|min:6'
         ]);
+
+        $existingUser = User::withTrashed()->where('email', $request->email)->first();
+        
+        if ($existingUser) {
+            if ($existingUser->trashed()) {
+                // Restore the soft-deleted user and update their password
+                $existingUser->restore();
+                $existingUser->name = $request->name;
+                $existingUser->password = $request->password;
+                $existingUser->save();
+
+                return response()->json([
+                    'message' => 'Akun Anda telah berhasil dipulihkan',
+                    'token' => $existingUser->createToken('auth_token')->plainTextToken
+                ]);
+            } else {
+                return response()->json([
+                    'message' => 'Email ini sudah terdaftar.',
+                    'errors' => ['email' => ['Email ini sudah terdaftar.']]
+                ], 422);
+            }
+        }
 
         /** @var \App\Models\User $user */
         $user = User::create([
@@ -53,7 +66,8 @@ class AuthController extends Controller
         $user = User::withTrashed()->where('email', $request->email)->first();
 
         if ($user && $user->trashed()) {
-            return response()->json(['message' => 'Akun Anda telah dinonaktifkan/dihapus oleh Admin'], 403);
+            // Restore account instead of blocking
+            $user->restore();
         }
 
         // Check password manually since we are using plain text
@@ -167,18 +181,19 @@ class AuthController extends Controller
             $user = User::withTrashed()->where('email', $email)->first();
 
             if ($user && $user->trashed()) {
-                return response()->json(['message' => 'Akun Anda telah dinonaktifkan/dihapus oleh Admin'], 403);
+                // Restore account instead of blocking
+                $user->restore();
             }
 
             if ($user) {
                 // Update google_id if not set
                 if (!$user->google_id) {
                     $user->google_id = $googleId;
-                    if (!$user->avatar && $avatar) {
-                        $user->avatar = $avatar;
-                    }
-                    $user->save();
                 }
+                if (!$user->avatar && $avatar) {
+                    $user->avatar = $avatar;
+                }
+                $user->save();
             } else {
                 // Create new user
                 $user = User::create([
