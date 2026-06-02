@@ -129,9 +129,9 @@ class DashboardController extends Controller
                     'wallet_balance' => $user->wallet_balance
                 ],
                 'summary' => [
-                    'total_carbon' => round($totalCarbon, 1),
-                    'this_month' => round($thisMonthCarbon, 1),
-                    'carbon_saved' => round($carbonSaved, 1)
+                    'total_carbon' => round($totalCarbon, 2),
+                    'this_month' => round($thisMonthCarbon, 2),
+                    'carbon_saved' => round($carbonSaved, 2)
                 ],
                 'chart' => [
                     'Week' => $weekChartData,
