@@ -10,14 +10,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens; // Tambahan untuk Sanctum
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['name', 'email', 'password', 'role', 'wallet_balance', 'reward_points','profile_picture','avatar', 'google_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes; // Tambahkan HasApiTokens di sini
+    use HasApiTokens, HasFactory, Notifiable; // Tambahkan HasApiTokens di sini
 
     /**
      * Get the attributes that should be cast.

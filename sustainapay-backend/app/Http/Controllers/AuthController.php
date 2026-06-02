@@ -14,15 +14,6 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
-        $existingUser = User::withTrashed()->where('email', $request->email)->first();
-        
-        if ($existingUser && $existingUser->trashed()) {
-            return response()->json([
-                'message' => 'Akun Anda telah dinonaktifkan/dihapus oleh Admin',
-                'errors' => ['email' => ['Email ini telah diblokir.']]
-            ], 403);
-        }
-
         $request->validate([
             'name' => 'required|string',
             'email' => 'required|email|unique:users',
@@ -51,11 +42,7 @@ class AuthController extends Controller
         ]);
 
         /** @var \App\Models\User $user */
-        $user = User::withTrashed()->where('email', $request->email)->first();
-
-        if ($user && $user->trashed()) {
-            return response()->json(['message' => 'Akun Anda telah dinonaktifkan/dihapus oleh Admin'], 403);
-        }
+        $user = User::where('email', $request->email)->first();
 
         // Check password manually since we are using plain text
         if (!$user || $user->password !== $request->password) {
@@ -159,11 +146,7 @@ class AuthController extends Controller
             }
 
             /** @var \App\Models\User $user */
-            $user = User::withTrashed()->where('email', $email)->first();
-
-            if ($user && $user->trashed()) {
-                return response()->json(['message' => 'Akun Anda telah dinonaktifkan/dihapus oleh Admin'], 403);
-            }
+            $user = User::where('email', $email)->first();
 
             if ($user) {
                 // Update google_id if not set
