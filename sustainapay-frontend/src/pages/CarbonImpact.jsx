@@ -203,10 +203,6 @@ const CarbonImpact = () => {
               <h2 className="text-6xl font-black mb-2 mt-2">{currentData.total}<span className="text-2xl text-gray-400 ml-1">{currentData.unit}</span></h2>
               <p className="text-gray-400 font-bold text-sm mb-6">{t.emittedText} {timeFrame === 'Month' ? t.thisMonth.toLowerCase() : t.thisYear.toLowerCase()}</p>
               
-              <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full border border-white/10">
-                <span className="text-xl">🏆</span>
-                <span className="text-sm font-bold text-white">{t.top15}</span>
-              </div>
             </div>
             {/* Background decoration */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-green-500 opacity-20 rounded-full -translate-y-1/2 translate-x-1/4"></div>
@@ -217,7 +213,7 @@ const CarbonImpact = () => {
             <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-xl mb-4">☁️</div>
             <p className="text-sm font-bold text-gray-400 mb-1">{t.monthlyAvg}</p>
             <h3 className="text-5xl font-black text-gray-900">{currentData.avg}</h3>
-            <p className="text-sm text-green-500 font-bold mt-3">↓ 12% {t.vsLast} {timeFrame === 'Month' ? t.thisMonth.toLowerCase() : t.thisYear.toLowerCase()}</p>
+
           </div>
           
         </div>
