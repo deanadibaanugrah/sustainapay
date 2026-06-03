@@ -15,9 +15,9 @@ const LandingPage = () => {
 
   // Global Statistics State
   const [stats, setStats] = useState({
-    users: '50K+',
-    transactions: '2M+',
-    carbon: '500T'
+    users: '...',
+    transactions: '...',
+    carbon: '...'
   });
 
   useEffect(() => {
