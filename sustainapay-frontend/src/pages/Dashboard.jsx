@@ -206,7 +206,6 @@ const Dashboard = () => {
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-50">
             <div className="flex justify-between items-start mb-4">
               <p className="text-sm font-bold text-gray-400">{t.totalCarbon}</p>
-              <span className="bg-green-100 text-green-600 text-xs font-bold px-3 py-1 rounded-full">↑ 23%</span>
             </div>
             <h2 className="text-4xl font-black text-gray-900">
               {dashboardData?.summary?.total_carbon ?? '557.4'} <span className="text-lg font-bold text-gray-400">kg</span>
@@ -217,7 +216,6 @@ const Dashboard = () => {
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-50">
             <div className="flex justify-between items-start mb-4">
               <p className="text-sm font-bold text-gray-400">{t.thisMonth}</p>
-              <span className="bg-pink-100 text-pink-500 text-xs font-bold px-3 py-1 rounded-full">↑ 5%</span>
             </div>
             <h2 className="text-4xl font-black text-gray-900">
               {dashboardData?.summary?.this_month ?? '124.5'} <span className="text-lg font-bold text-gray-400">kg</span>
@@ -228,7 +226,6 @@ const Dashboard = () => {
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-50">
             <div className="flex justify-between items-start mb-4">
               <p className="text-sm font-bold text-gray-400">{t.carbonSaved}</p>
-              <span className="bg-green-100 text-green-600 text-xs font-bold px-3 py-1 rounded-full">↑ 23%</span>
             </div>
             <h2 className="text-4xl font-black text-gray-900">
               {dashboardData?.summary?.carbon_saved ?? '124.5'} <span className="text-lg font-bold text-gray-400">kg</span>
