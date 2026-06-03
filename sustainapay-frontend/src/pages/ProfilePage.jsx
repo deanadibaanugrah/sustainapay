@@ -408,15 +408,7 @@ const ProfilePage = () => {
               <span className="p-2 bg-blue-50 rounded-lg text-lg">⚙️</span> {t.settings}
             </h3>
             <div className="space-y-4">
-              <button className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-green-50 transition-colors group">
-                <span className="font-bold text-gray-700 group-hover:text-green-600">{t.notifSettings}</span>
-                <span className="text-gray-400">›</span>
-              </button>
-              <button className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-green-50 transition-colors group">
-                <span className="font-bold text-gray-700 group-hover:text-green-600">{t.privacySecurity}</span>
-                <span className="text-gray-400">›</span>
-              </button>
-              
+
               <button 
                 onClick={handleLogout}
                 className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-red-50 transition-colors group"
