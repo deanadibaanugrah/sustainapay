@@ -269,18 +269,6 @@ const RewardsPage = () => {
         {/* TAB CONTENT: Redeem Rewards */}
         {activeTab === 'Redeem Rewards' && (
           <div className="animate-[fadeIn_0.3s_ease-out]">
-            {/* AI Recommendation Banner */}
-            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-[2rem] p-6 mb-8 flex items-center gap-6">
-              <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center text-3xl shrink-0">✨</div>
-              <div>
-                <h4 className="font-black text-indigo-900 mb-1 flex items-center gap-2">
-                  {t.aiSuggestTitle}
-                </h4>
-                <p className="text-sm text-indigo-800/80 font-medium">
-                  {t.aiSuggestDesc}
-                </p>
-              </div>
-            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {catalog.filter(v => v.type === 'reward').map((item) => (
