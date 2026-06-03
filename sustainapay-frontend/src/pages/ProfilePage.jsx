@@ -314,9 +314,6 @@ const ProfilePage = () => {
             <Link to="/rewards" className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all">
               {t.rewards}
             </Link>
-            <Link to="/profile" className="px-5 py-2 text-sm font-black text-white bg-[#00A651] shadow-md shadow-green-200 rounded-full transition-all">
-              {t.profile}
-            </Link>
           </div>
 
           <div className="flex items-center gap-4">
