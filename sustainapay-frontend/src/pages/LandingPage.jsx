@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from "./LanguageContext";
 
@@ -12,6 +12,43 @@ const LandingPage = () => {
   
   const rightColumnRef = useRef(null);
   const text = t.landing;
+
+  // Global Statistics State
+  const [stats, setStats] = useState({
+    users: '50K+',
+    transactions: '2M+',
+    carbon: '500T'
+  });
+
+  useEffect(() => {
+    // Fetch real data from backend
+    fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'}/api/statistics`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          const { users, transactions, carbon_tracked } = data.data;
+          
+          // Format functions
+          const formatNumber = (num) => {
+            if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M+';
+            if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K+';
+            return num;
+          };
+
+          const formatCarbon = (kg) => {
+            if (kg >= 1000) return (kg / 1000).toFixed(1).replace(/\.0$/, '') + 'T';
+            return Math.floor(kg) + ' KG';
+          };
+
+          setStats({
+            users: formatNumber(users),
+            transactions: formatNumber(transactions),
+            carbon: formatCarbon(carbon_tracked)
+          });
+        }
+      })
+      .catch(err => console.error('Failed to fetch statistics', err));
+  }, []);
 
 
   return (
@@ -69,9 +106,9 @@ const LandingPage = () => {
           {/* STATS */}
           <div className="grid grid-cols-3 gap-4 pt-8 border-t border-green-200/50">
             {[
-              { val: '50K+', label: text.statUsers, color: 'text-gray-900', labelCol: 'text-gray-500' },
-              { val: '2M+', label: text.statTrans, color: 'text-gray-900', labelCol: 'text-gray-500' },
-              { val: '500T', label: text.statCo2, color: 'text-[#00A651]', labelCol: 'text-green-700' }
+              { val: stats.users, label: text.statUsers, color: 'text-gray-900', labelCol: 'text-gray-500' },
+              { val: stats.transactions, label: text.statTrans, color: 'text-gray-900', labelCol: 'text-gray-500' },
+              { val: stats.carbon, label: text.statCo2, color: 'text-[#00A651]', labelCol: 'text-green-700' }
             ].map((s, i) => (
               <div key={i} className="text-center lg:text-left">
                 <h2 className={`text-2xl sm:text-3xl font-extrabold ${s.color}`}>{s.val}</h2>

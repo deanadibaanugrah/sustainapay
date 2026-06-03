@@ -24,6 +24,8 @@ Route::post('/transactions/topup', [TransactionController::class, 'topup']);
 // ---> CALLBACK MIDTRANS (WAJIB PUBLIC & TIDAK BOLEH ADA DUPLIKAT) <---
 Route::post('/midtrans-callback', [PaymentController::class, 'callback']);
 
+Route::get('/statistics', [DashboardController::class, 'globalStatistics']);
+
 
 // ==========================================
 // RUTE ADMIN (SEMENTARA PUBLIC UNTUK TESTING UI)

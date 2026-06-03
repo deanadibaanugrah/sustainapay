@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Transaction;
 use App\Models\AiRecommendation;
+use App\Models\User;
+use App\Models\CarbonRecord;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -141,6 +143,24 @@ class DashboardController extends Controller
                 'transactions' => $recentTransactions,
                 'rewards' => $rewards,
                 'quick_recommendations' => $quick_recommendations
+            ]
+        ]);
+    }
+
+    public function globalStatistics()
+    {
+        $usersCount = User::count();
+        $transactionsCount = Transaction::count();
+        $carbonTracked = CarbonRecord::sum('calculated_carbon_kg') ?? 0;
+
+        // Format to readable strings like 50K+, 2M+, etc if we want, or just raw numbers
+        // Let's return raw numbers and format in frontend
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'users' => $usersCount,
+                'transactions' => $transactionsCount,
+                'carbon_tracked' => round($carbonTracked, 2)
             ]
         ]);
     }
