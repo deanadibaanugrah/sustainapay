@@ -10,7 +10,7 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('transaction_id')->nullable()->constrained()->onDelete('cascade');
-            $table->foreignId('emission_factor_id')->constrained('emission_factors');
+            $table->unsignedBigInteger('emission_factor_id');
             $table->decimal('distance_km', 10, 2);
             $table->decimal('calculated_carbon_kg', 10, 2);
             $table->timestamps();
