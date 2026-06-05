@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'], // Ganti dengan URL Frontend Anda nanti saat production, misal: ['https://domain-react-anda.com']
+    'allowed_origins' => ['https://sustainapay.vercel.app', 'http://localhost:5173'],
 
     'allowed_origins_patterns' => [],
 
