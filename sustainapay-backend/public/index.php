@@ -27,23 +27,4 @@ if (isset($_ENV['VERCEL'])) {
     $app->useBootstrapPath('/tmp/bootstrap');
 }
 
-register_shutdown_function(function() {
-    $error = error_get_last();
-    if ($error !== null && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR])) {
-        echo "\nFATAL ERROR: " . print_r($error, true);
-    }
-});
-
-try {
-    $request = Request::capture();
-    $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
-    $response = $kernel->handle($request);
-    
-    echo "\nRESPONSE STATUS: " . $response->getStatusCode() . "\n";
-    echo "RESPONSE CONTENT: " . $response->getContent() . "\n";
-    
-    $response->send();
-    $kernel->terminate($request, $response);
-} catch (\Throwable $e) {
-    echo "\nCAUGHT EXCEPTION: " . $e->getMessage() . "\n" . $e->getTraceAsString();
-}
+$app->handleRequest(Request::capture());
