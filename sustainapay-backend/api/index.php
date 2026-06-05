@@ -5,6 +5,8 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
+echo "TEST_VERCEL_PHP_EXECUTION\n";
+
 $_ENV['LOG_CHANNEL'] = 'stderr';
 $_ENV['VIEW_COMPILED_PATH'] = '/tmp';
 $_ENV['SESSION_DRIVER'] = 'cookie';
