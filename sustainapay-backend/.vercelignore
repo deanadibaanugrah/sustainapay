@@ -1,0 +1,7 @@
+/node_modules
+/vendor
+/storage/logs
+/storage/framework/views/*
+/storage/framework/cache/*
+/tests
+/.git
