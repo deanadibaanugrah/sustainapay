@@ -149,19 +149,25 @@ class DashboardController extends Controller
 
     public function globalStatistics()
     {
-        $usersCount = User::count();
-        $transactionsCount = Transaction::count();
-        $carbonTracked = CarbonRecord::sum('calculated_carbon_kg') ?? 0;
+        try {
+            $usersCount = User::count();
+            $transactionsCount = Transaction::count();
+            $carbonTracked = CarbonRecord::sum('calculated_carbon_kg') ?? 0;
 
-        // Format to readable strings like 50K+, 2M+, etc if we want, or just raw numbers
-        // Let's return raw numbers and format in frontend
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'users' => $usersCount,
-                'transactions' => $transactionsCount,
-                'carbon_tracked' => round($carbonTracked, 2)
-            ]
-        ]);
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'users' => $usersCount,
+                    'transactions' => $transactionsCount,
+                    'carbon_tracked' => round($carbonTracked, 2)
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
     }
 }
