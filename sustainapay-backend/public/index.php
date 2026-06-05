@@ -25,7 +25,15 @@ register_shutdown_function(function() {
 });
 
 try {
-    $app->handleRequest(Request::capture());
+    $request = Request::capture();
+    $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+    $response = $kernel->handle($request);
+    
+    echo "\nRESPONSE STATUS: " . $response->getStatusCode() . "\n";
+    echo "RESPONSE CONTENT: " . $response->getContent() . "\n";
+    
+    $response->send();
+    $kernel->terminate($request, $response);
 } catch (\Throwable $e) {
     echo "\nCAUGHT EXCEPTION: " . $e->getMessage() . "\n" . $e->getTraceAsString();
 }
