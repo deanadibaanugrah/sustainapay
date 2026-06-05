@@ -17,4 +17,15 @@ require __DIR__.'/../vendor/autoload.php';
 /** @var Application $app */
 $app = require_once __DIR__.'/../bootstrap/app.php';
 
-$app->handleRequest(Request::capture());
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error !== null && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR])) {
+        echo "\nFATAL ERROR: " . print_r($error, true);
+    }
+});
+
+try {
+    $app->handleRequest(Request::capture());
+} catch (\Throwable $e) {
+    echo "\nCAUGHT EXCEPTION: " . $e->getMessage() . "\n" . $e->getTraceAsString();
+}
